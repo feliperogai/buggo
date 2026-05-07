@@ -1,0 +1,85 @@
+class UserProfile {
+  final String name;
+  final String language;
+  final String level; // 'child', 'teen', 'adult'
+  final int dailyGoalMinutes;
+  final int xp;
+  final int coins;
+  final int streak;
+  final DateTime? lastStudyDate;
+  final List<String> completedLessons;
+  final List<String> unlockedAchievements;
+
+  const UserProfile({
+    required this.name,
+    required this.language,
+    required this.level,
+    required this.dailyGoalMinutes,
+    this.xp = 0,
+    this.coins = 0,
+    this.streak = 0,
+    this.lastStudyDate,
+    this.completedLessons = const [],
+    this.unlockedAchievements = const [],
+  });
+
+  UserProfile copyWith({
+    String? name,
+    String? language,
+    String? level,
+    int? dailyGoalMinutes,
+    int? xp,
+    int? coins,
+    int? streak,
+    DateTime? lastStudyDate,
+    List<String>? completedLessons,
+    List<String>? unlockedAchievements,
+  }) {
+    return UserProfile(
+      name: name ?? this.name,
+      language: language ?? this.language,
+      level: level ?? this.level,
+      dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
+      xp: xp ?? this.xp,
+      coins: coins ?? this.coins,
+      streak: streak ?? this.streak,
+      lastStudyDate: lastStudyDate ?? this.lastStudyDate,
+      completedLessons: completedLessons ?? this.completedLessons,
+      unlockedAchievements: unlockedAchievements ?? this.unlockedAchievements,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'language': language,
+        'level': level,
+        'dailyGoalMinutes': dailyGoalMinutes,
+        'xp': xp,
+        'coins': coins,
+        'streak': streak,
+        'lastStudyDate': lastStudyDate?.toIso8601String(),
+        'completedLessons': completedLessons,
+        'unlockedAchievements': unlockedAchievements,
+      };
+
+  factory UserProfile.fromMap(Map<dynamic, dynamic> map) => UserProfile(
+        name: map['name'] as String? ?? '',
+        language: map['language'] as String? ?? 'python',
+        level: map['level'] as String? ?? 'adult',
+        dailyGoalMinutes: map['dailyGoalMinutes'] as int? ?? 15,
+        xp: map['xp'] as int? ?? 0,
+        coins: map['coins'] as int? ?? 0,
+        streak: map['streak'] as int? ?? 0,
+        lastStudyDate: map['lastStudyDate'] != null
+            ? DateTime.tryParse(map['lastStudyDate'] as String)
+            : null,
+        completedLessons:
+            (map['completedLessons'] as List?)?.cast<String>() ?? [],
+        unlockedAchievements:
+            (map['unlockedAchievements'] as List?)?.cast<String>() ?? [],
+      );
+
+  int get currentLevel => (xp / 100).floor() + 1;
+  int get xpToNextLevel => 100 - (xp % 100);
+  double get xpProgress => (xp % 100) / 100.0;
+}
