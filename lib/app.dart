@@ -11,7 +11,7 @@ class BuggoApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Buggo',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       routerConfig: AppRouter.router,
     );
   }

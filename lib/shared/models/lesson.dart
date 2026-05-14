@@ -21,6 +21,13 @@ class Lesson {
   final int xpReward;
   final int coinReward;
 
+  // Code-fill IDE challenge fields
+  // Template uses {0}, {1}, ... as placeholders
+  final String? codeTemplate;
+  final List<String>? availableTokens;
+  final List<String>? correctTokens;
+  final String? expectedOutput;
+
   const Lesson({
     required this.id,
     required this.title,
@@ -34,6 +41,10 @@ class Lesson {
     this.hint,
     this.xpReward = 10,
     this.coinReward = 5,
+    this.codeTemplate,
+    this.availableTokens,
+    this.correctTokens,
+    this.expectedOutput,
   });
 }
 

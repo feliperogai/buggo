@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../shared/widgets/buggo_button.dart';
 import '../../../../shared/widgets/mascot_widget.dart';
 
 class SuccessScreen extends StatefulWidget {
@@ -31,7 +30,7 @@ class _SuccessScreenState extends State<SuccessScreen> {
   @override
   void initState() {
     super.initState();
-    _confetti = ConfettiController(duration: const Duration(seconds: 3));
+    _confetti = ConfettiController(duration: const Duration(seconds: 4));
     _confetti.play();
   }
 
@@ -44,146 +43,256 @@ class _SuccessScreenState extends State<SuccessScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-        child: Stack(
-          children: [
-            Align(
-              alignment: Alignment.topCenter,
-              child: ConfettiWidget(
-                confettiController: _confetti,
-                blastDirectionality: BlastDirectionality.explosive,
-                shouldLoop: false,
-                colors: const [
-                  AppColors.primary,
-                  AppColors.neonBlue,
-                  AppColors.neonGreen,
-                  AppColors.neonYellow,
-                  AppColors.neonPink,
-                ],
-                numberOfParticles: 30,
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          // Decorative circles
+          Positioned(
+            top: -100,
+            left: -60,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.success.withValues(alpha: 0.08),
               ),
             ),
-            SafeArea(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const MascotWidget(
-                        mood: MascotMood.celebrating,
-                        size: 140,
-                        speechBubble: 'Arrasou demais! 🎊',
-                      )
-                          .animate()
-                          .scale(
-                            begin: const Offset(0.5, 0.5),
-                            duration: 600.ms,
-                            curve: Curves.elasticOut,
-                          )
-                          .fade(),
-                      const SizedBox(height: 32),
-                      Text(
-                        'Lição Concluída!',
-                        style: AppTextStyles.displayMedium,
+          ),
+          Positioned(
+            bottom: -80,
+            right: -80,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.07),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 200,
+            right: -40,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.accent.withValues(alpha: 0.07),
+              ),
+            ),
+          ),
+
+          // Confetti
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confetti,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [
+                AppColors.primary,
+                AppColors.success,
+                AppColors.accent,
+                AppColors.levelPink,
+                AppColors.primaryLight,
+              ],
+              numberOfParticles: 50,
+              minimumSize: const Size(6, 6),
+              maximumSize: const Size(16, 16),
+            ),
+          ),
+
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Stars
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(3, (i) {
+                        return Icon(
+                          Icons.star_rounded,
+                          color: AppColors.accent,
+                          size: 32,
+                        )
+                            .animate(delay: (200 + i * 120).ms)
+                            .scale(
+                              begin: const Offset(0, 0),
+                              curve: Curves.elasticOut,
+                              duration: 600.ms,
+                            )
+                            .fade();
+                      }),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    const MascotWidget(
+                      mood: MascotMood.celebrating,
+                      size: 130,
+                      speechBubble: 'Arrasou demais!',
+                    )
+                        .animate()
+                        .scale(
+                          begin: const Offset(0.3, 0.3),
+                          duration: 700.ms,
+                          curve: Curves.elasticOut,
+                        )
+                        .fade(),
+
+                    const SizedBox(height: 28),
+
+                    // "Lição concluída" com gradiente
+                    ShaderMask(
+                      shaderCallback: (bounds) =>
+                          AppColors.successGradient.createShader(bounds),
+                      child: Text(
+                        'Lição\nConcluída!',
+                        style: AppTextStyles.displayMedium.copyWith(
+                          color: Colors.white,
+                          letterSpacing: -1,
+                        ),
                         textAlign: TextAlign.center,
-                      )
-                          .animate(delay: 300.ms)
-                          .slideY(begin: 0.3)
-                          .fade(),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Continue assim e você vai dominar a programação!',
-                        style: AppTextStyles.bodyMedium,
-                        textAlign: TextAlign.center,
-                      )
-                          .animate(delay: 400.ms)
-                          .slideY(begin: 0.3)
-                          .fade(),
-                      const SizedBox(height: 40),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _RewardChip(
-                            emoji: '⚡',
-                            value: '+${widget.xpEarned} XP',
-                            color: AppColors.xpColor,
-                          )
-                              .animate(delay: 500.ms)
-                              .slideX(begin: -0.3)
-                              .fade(),
-                          const SizedBox(width: 16),
-                          _RewardChip(
-                            emoji: '🪙',
-                            value: '+${widget.coinsEarned}',
-                            color: AppColors.coinColor,
-                          )
-                              .animate(delay: 600.ms)
-                              .slideX(begin: 0.3)
-                              .fade(),
-                        ],
                       ),
-                      const SizedBox(height: 48),
-                      BuggoButton(
-                        label: 'Próxima lição',
-                        onPressed: () {
-                          if (widget.nextArgs != null) {
-                            context.go(widget.nextRoute,
-                                extra: widget.nextArgs);
-                          } else {
-                            context.go(widget.nextRoute);
-                          }
-                        },
+                    ).animate(delay: 300.ms).slideY(begin: 0.3).fade(),
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      'Continue assim e você vai dominar a programação!',
+                      style: AppTextStyles.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ).animate(delay: 400.ms).fade(),
+
+                    const SizedBox(height: 32),
+
+                    // Reward cards
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _RewardCard(
+                          label: '+${widget.xpEarned} XP',
+                          icon: Icons.bolt_rounded,
+                          color: AppColors.xpColor,
+                          gradient: AppColors.primaryGradient,
+                        ).animate(delay: 500.ms).slideX(begin: -0.4).fade(),
+                        const SizedBox(width: 16),
+                        _RewardCard(
+                          label: '+${widget.coinsEarned}',
+                          icon: Icons.monetization_on_rounded,
+                          color: AppColors.coinColor,
+                          gradient: AppColors.accentGradient,
+                        ).animate(delay: 620.ms).slideX(begin: 0.4).fade(),
+                      ],
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // Próxima lição
+                    GestureDetector(
+                      onTap: () => widget.nextArgs != null
+                          ? context.go(widget.nextRoute, extra: widget.nextArgs)
+                          : context.go(widget.nextRoute),
+                      child: Container(
                         width: double.infinity,
-                        variant: BuggoButtonVariant.success,
-                      ).animate(delay: 700.ms).slideY(begin: 0.3).fade(),
-                      const SizedBox(height: 12),
-                      BuggoButton(
-                        label: 'Voltar ao Início',
-                        onPressed: () => context.go('/home'),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(100),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.arrow_forward_rounded,
+                                color: Colors.white, size: 22),
+                            const SizedBox(width: 10),
+                            Text('Próxima lição',
+                                style: AppTextStyles.labelLarge
+                                    .copyWith(color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ).animate(delay: 700.ms).slideY(begin: 0.3).fade(),
+
+                    const SizedBox(height: 12),
+
+                    GestureDetector(
+                      onTap: () => context.go('/home'),
+                      child: Container(
                         width: double.infinity,
-                        variant: BuggoButtonVariant.ghost,
-                      ).animate(delay: 800.ms).fade(),
-                    ],
-                  ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(
+                              color: AppColors.cardBorder, width: 1.5),
+                        ),
+                        child: Text(
+                          'Voltar ao início',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.labelLarge
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ).animate(delay: 800.ms).fade(),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _RewardChip extends StatelessWidget {
-  final String emoji;
-  final String value;
+class _RewardCard extends StatelessWidget {
+  final String label;
+  final IconData icon;
   final Color color;
+  final LinearGradient gradient;
 
-  const _RewardChip({
-    required this.emoji,
-    required this.value,
+  const _RewardCard({
+    required this.label,
+    required this.icon,
     required this.color,
+    required this.gradient,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 32)),
-          const SizedBox(height: 4),
+          Icon(icon, color: Colors.white, size: 34),
+          const SizedBox(height: 8),
           Text(
-            value,
-            style: AppTextStyles.headlineSmall.copyWith(color: color),
+            label,
+            style: AppTextStyles.headlineSmall.copyWith(color: Colors.white),
           ),
         ],
       ),

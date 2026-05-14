@@ -5,13 +5,13 @@ import '../constants/app_colors.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get darkTheme => ThemeData(
+  static ThemeData get lightTheme => ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         scaffoldBackgroundColor: AppColors.background,
-        colorScheme: const ColorScheme.dark(
+        colorScheme: const ColorScheme.light(
           primary: AppColors.primary,
-          secondary: AppColors.neonBlue,
+          secondary: AppColors.primaryLight,
           surface: AppColors.surface,
           error: AppColors.error,
           onPrimary: Colors.white,
@@ -19,7 +19,7 @@ class AppTheme {
           onSurface: AppColors.textPrimary,
         ),
         textTheme: GoogleFonts.nunitoTextTheme(
-          ThemeData.dark().textTheme,
+          ThemeData.light().textTheme,
         ),
         cardTheme: CardThemeData(
           color: AppColors.surface,
@@ -30,7 +30,7 @@ class AppTheme {
           elevation: 0,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.surface,
           elevation: 0,
           centerTitle: true,
           foregroundColor: AppColors.textPrimary,
