@@ -67,6 +67,7 @@ final List<CourseLevel> pythonCurriculum = [
       ),
     ],
   ),
+
   CourseLevel(
     id: 1,
     title: 'Primeiros Passos em Python',
@@ -85,21 +86,23 @@ final List<CourseLevel> pythonCurriculum = [
         xpReward: 10,
         coinReward: 5,
       ),
+
+      // CODE FILL: print()
       const Lesson(
         id: 'l1_1',
-        title: 'print() na prática',
-        description: 'Use o print para mostrar mensagens',
-        type: LessonType.quiz,
-        question: 'O que aparece na tela com esse código?',
-        codeSnippet: 'print("Buggo é incrível!")',
-        options: [
-          LessonOption(text: 'Buggo é incrível!', isCorrect: true),
-          LessonOption(text: 'print("Buggo é incrível!")', isCorrect: false),
-          LessonOption(text: 'Nada aparece', isCorrect: false),
-        ],
-        xpReward: 15,
-        coinReward: 8,
+        title: 'Use o print()',
+        description: 'Complete o código para mostrar a mensagem',
+        type: LessonType.codeChallenge,
+        question: 'Qual função usamos para mostrar texto na tela?',
+        codeTemplate: '{0}("Buggo é incrível!")',
+        availableTokens: ['print', 'input', 'show', 'display'],
+        correctTokens: ['print'],
+        expectedOutput: 'Buggo é incrível!',
+        hint: 'print() é a função que "imprime" texto na tela',
+        xpReward: 20,
+        coinReward: 10,
       ),
+
       const Lesson(
         id: 'l1_2',
         title: 'Variáveis',
@@ -111,37 +114,39 @@ final List<CourseLevel> pythonCurriculum = [
         xpReward: 10,
         coinReward: 5,
       ),
+
+      // CODE FILL: variáveis
       const Lesson(
         id: 'l1_3',
-        title: 'Quiz: Variáveis',
-        description: 'Teste seus conhecimentos',
-        type: LessonType.quiz,
-        question: 'O que o código abaixo vai imprimir?',
-        codeSnippet: 'fruta = "banana"\nprint(fruta)',
-        options: [
-          LessonOption(text: 'banana', isCorrect: true),
-          LessonOption(text: 'fruta', isCorrect: false),
-          LessonOption(text: '"banana"', isCorrect: false),
-        ],
-        hint: 'A variável "fruta" guarda o valor "banana".',
-        xpReward: 20,
-        coinReward: 10,
+        title: 'Criando variáveis',
+        description: 'Guarde "banana" em uma variável e mostre',
+        type: LessonType.codeChallenge,
+        question: 'Crie a variável "fruta" e mostre seu valor na tela:',
+        codeTemplate: '{0} = "banana"\nprint({1})',
+        availableTokens: ['fruta', 'nome', '"banana"', 'valor'],
+        correctTokens: ['fruta', 'fruta'],
+        expectedOutput: 'banana',
+        hint: 'A variável precisa ter o mesmo nome nas duas linhas!',
+        xpReward: 25,
+        coinReward: 12,
       ),
+
+      // CODE FILL: operadores aritméticos
       const Lesson(
         id: 'l1_4',
-        title: 'Números e Contas',
-        description: 'Python como calculadora',
-        type: LessonType.quiz,
-        question: 'Qual é o resultado desse código?',
-        codeSnippet: 'resultado = 5 + 3\nprint(resultado)',
-        options: [
-          LessonOption(text: '8', isCorrect: true),
-          LessonOption(text: '53', isCorrect: false),
-          LessonOption(text: 'resultado', isCorrect: false),
-        ],
+        title: 'Calculando com Python',
+        description: 'Use o operador certo para somar',
+        type: LessonType.codeChallenge,
+        question: 'Complete para que resultado seja 8 (5 + 3):',
+        codeTemplate: 'resultado = 5 {0} 3\nprint(resultado)',
+        availableTokens: ['+', '-', '*', '/'],
+        correctTokens: ['+'],
+        expectedOutput: '8',
+        hint: 'O operador + soma dois números',
         xpReward: 20,
         coinReward: 10,
       ),
+
       const Lesson(
         id: 'l1_5',
         title: 'if: Tomando decisões',
@@ -153,23 +158,24 @@ final List<CourseLevel> pythonCurriculum = [
         xpReward: 10,
         coinReward: 5,
       ),
+
+      // CODE FILL: if/else
       const Lesson(
         id: 'l1_6',
-        title: 'Quiz: if/else',
-        description: 'SE isso, SENÃO aquilo',
-        type: LessonType.quiz,
-        question: 'O que o código imprime se nota = 5?',
-        codeSnippet:
-            'nota = 5\nif nota >= 7:\n    print("Aprovado!")\nelse:\n    print("Reprovado!")',
-        options: [
-          LessonOption(text: 'Reprovado!', isCorrect: true),
-          LessonOption(text: 'Aprovado!', isCorrect: false),
-          LessonOption(text: 'Nada', isCorrect: false),
-        ],
-        hint: '5 é maior ou igual a 7?',
-        xpReward: 25,
-        coinReward: 12,
+        title: 'if e else juntos',
+        description: 'Complete a estrutura SE/SENÃO',
+        type: LessonType.codeChallenge,
+        question: 'nota=5 deve imprimir "Reprovado!". Complete:',
+        codeTemplate:
+            'nota = 5\nif nota {0} 7:\n    print("Aprovado!")\n{1}:\n    print("Reprovado!")',
+        availableTokens: ['>=', '<=', 'else', 'elif', '>'],
+        correctTokens: ['>=', 'else'],
+        expectedOutput: 'Reprovado!',
+        hint: '"else" não precisa de condição — é o "senão"',
+        xpReward: 30,
+        coinReward: 15,
       ),
+
       const Lesson(
         id: 'l1_7',
         title: 'Loop for',
@@ -181,22 +187,23 @@ final List<CourseLevel> pythonCurriculum = [
         xpReward: 10,
         coinReward: 5,
       ),
+
+      // CODE FILL: for + range
       const Lesson(
         id: 'l1_8',
-        title: 'Quiz: Loop for',
-        description: 'Quantas vezes?',
-        type: LessonType.quiz,
-        question: 'Quantas vezes "Python!" aparece na tela?',
-        codeSnippet: 'for i in range(4):\n    print("Python!")',
-        options: [
-          LessonOption(text: '4 vezes', isCorrect: true),
-          LessonOption(text: '3 vezes', isCorrect: false),
-          LessonOption(text: '5 vezes', isCorrect: false),
-        ],
-        hint: 'range(4) gera os números 0, 1, 2, 3',
-        xpReward: 25,
-        coinReward: 12,
+        title: 'Loop for na prática',
+        description: 'Complete para imprimir "Python!" 4 vezes',
+        type: LessonType.codeChallenge,
+        question: 'Use range() para repetir 4 vezes:',
+        codeTemplate: 'for i in {0}({1}):\n    print("Python!")',
+        availableTokens: ['range', '4', 'lista', '3', 'enumerate'],
+        correctTokens: ['range', '4'],
+        expectedOutput: 'Python!\nPython!\nPython!\nPython!',
+        hint: 'range(4) gera os números 0, 1, 2, 3 — 4 números!',
+        xpReward: 30,
+        coinReward: 15,
       ),
+
       const Lesson(
         id: 'l1_9',
         title: 'Funções',
@@ -210,6 +217,7 @@ final List<CourseLevel> pythonCurriculum = [
       ),
     ],
   ),
+
   CourseLevel(
     id: 2,
     title: 'Mini Projetos Reais',
@@ -229,51 +237,52 @@ final List<CourseLevel> pythonCurriculum = [
         xpReward: 30,
         coinReward: 15,
       ),
+
+      // CODE FILL: calculadora
       const Lesson(
         id: 'l2_1',
-        title: 'Quiz: Calculadora',
-        description: 'O que a calculadora retorna?',
-        type: LessonType.quiz,
-        question: 'Qual é o resultado de calcular(10, 5)?',
-        codeSnippet:
-            'def calcular(a, b):\n    soma = a + b\n    print("Resultado:", soma)\n\ncalcular(10, 5)',
-        options: [
-          LessonOption(text: 'Resultado: 15', isCorrect: true),
-          LessonOption(text: 'Resultado: 105', isCorrect: false),
-          LessonOption(text: 'Resultado: 50', isCorrect: false),
-        ],
-        xpReward: 30,
-        coinReward: 15,
+        title: 'Monte a Calculadora',
+        description: 'Complete a função para somar e mostrar o resultado',
+        type: LessonType.codeChallenge,
+        question: 'Complete para que calcular(10, 5) mostre "Resultado: 15":',
+        codeTemplate:
+            'def calcular(a, b):\n    soma = a {0} b\n    print("Resultado:", {1})\n\ncalcular(10, 5)',
+        availableTokens: ['+', '-', 'soma', 'a', 'b'],
+        correctTokens: ['+', 'soma'],
+        expectedOutput: 'Resultado: 15',
+        hint: 'Somamos a + b e depois mostramos a variável "soma"',
+        xpReward: 40,
+        coinReward: 20,
       ),
+
       const Lesson(
         id: 'l2_2',
         title: 'Jogo de Adivinhação',
         description: 'Lógica de jogo simples',
         type: LessonType.explanation,
         explanation:
-            'Um jogo onde o computador tem um número secreto e você tenta adivinhar!\nÉ o if/else em ação.',
+            'Um jogo onde o computador tem um número secreto e você tenta adivinhar!\nÉ o if/elif/else em ação.',
         codeSnippet:
             'secreto = 7\nchute = 5\n\nif chute == secreto:\n    print("Acertou!")\nelif chute < secreto:\n    print("Muito baixo!")\nelse:\n    print("Muito alto!")',
         xpReward: 30,
         coinReward: 15,
       ),
+
+      // CODE FILL: adivinhação
       const Lesson(
         id: 'l2_3',
-        title: 'Quiz: Adivinhação',
-        description: 'O que o jogo imprime?',
-        type: LessonType.quiz,
-        question:
-            'Com secreto=7 e chute=5, o que aparece?',
-        codeSnippet:
-            'secreto = 7\nchute = 5\n\nif chute == secreto:\n    print("Acertou!")\nelif chute < secreto:\n    print("Muito baixo!")\nelse:\n    print("Muito alto!")',
-        options: [
-          LessonOption(text: 'Muito baixo!', isCorrect: true),
-          LessonOption(text: 'Acertou!', isCorrect: false),
-          LessonOption(text: 'Muito alto!', isCorrect: false),
-        ],
-        hint: '5 é menor que 7, então...',
-        xpReward: 30,
-        coinReward: 15,
+        title: 'Complete o Jogo',
+        description: 'Complete a lógica do jogo de adivinhação',
+        type: LessonType.codeChallenge,
+        question: 'chute=5 e secreto=7. Complete para mostrar "Muito baixo!":',
+        codeTemplate:
+            'secreto = 7\nchute = 5\n\nif chute {0} secreto:\n    print("Acertou!")\n{1} chute < secreto:\n    print("Muito baixo!")\nelse:\n    print("Muito alto!")',
+        availableTokens: ['==', '!=', 'elif', 'else', 'if'],
+        correctTokens: ['==', 'elif'],
+        expectedOutput: 'Muito baixo!',
+        hint: '== compara igualdade; elif é "senão se" com condição',
+        xpReward: 40,
+        coinReward: 20,
       ),
     ],
   ),

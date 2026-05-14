@@ -5,15 +5,16 @@ import 'app_colors.dart';
 class AppTextStyles {
   AppTextStyles._();
 
+  // Display (Nunito ExtraBold)
   static TextStyle get displayLarge => GoogleFonts.nunito(
-        fontSize: 40,
+        fontSize: 38,
         fontWeight: FontWeight.w900,
         color: AppColors.textPrimary,
         letterSpacing: -1,
       );
 
   static TextStyle get displayMedium => GoogleFonts.nunito(
-        fontSize: 32,
+        fontSize: 30,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
         letterSpacing: -0.5,
@@ -23,16 +24,17 @@ class AppTextStyles {
         fontSize: 26,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
+        letterSpacing: -0.3,
       );
 
   static TextStyle get headlineMedium => GoogleFonts.nunito(
-        fontSize: 22,
+        fontSize: 21,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       );
 
   static TextStyle get headlineSmall => GoogleFonts.nunito(
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       );
@@ -59,18 +61,46 @@ class AppTextStyles {
         fontSize: 16,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
+        letterSpacing: 0.3,
+      );
+
+  static TextStyle get labelSmall => GoogleFonts.nunito(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textMuted,
         letterSpacing: 0.5,
       );
 
+  // Code (Fira Code)
   static TextStyle get code => GoogleFonts.firaCode(
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: AppColors.neonGreen,
+        color: AppColors.primary,
       );
 
   static TextStyle get codeLarge => GoogleFonts.firaCode(
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: FontWeight.w500,
-        color: AppColors.neonGreen,
+        color: AppColors.primary,
+      );
+
+  // Backward compat aliases for pixel styles that are still referenced
+  static TextStyle get pixelHeadline => GoogleFonts.nunito(
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textPrimary,
+      );
+
+  static TextStyle get pixelBody => GoogleFonts.nunito(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+      );
+
+  static TextStyle get pixelSmall => GoogleFonts.nunito(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textSecondary,
+        letterSpacing: 0.4,
       );
 }
