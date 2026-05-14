@@ -56,6 +56,15 @@ class UserNotifier extends Notifier<UserProfile?> {
     return 1;
   }
 
+  void updateAvatar(int index, {String? photoPath, bool clearPhoto = false}) {
+    if (state == null) return;
+    saveProfile(state!.copyWith(
+      avatarIndex: index,
+      customPhotoPath: photoPath,
+      clearPhoto: clearPhoto,
+    ));
+  }
+
   bool isLessonCompleted(String lessonId) {
     return state?.completedLessons.contains(lessonId) ?? false;
   }

@@ -15,14 +15,20 @@ class SettingsScreen extends ConsumerWidget {
     final user = ref.watch(userProvider);
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          // Header com gradiente
+          Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.headerGradient,
+              borderRadius:
+                  BorderRadius.vertical(bottom: Radius.circular(28)),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -31,66 +37,75 @@ class SettingsScreen extends ConsumerWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.cardBorder),
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.35),
+                              width: 1.5),
                         ),
                         child: const Icon(Icons.arrow_back_ios_new,
-                            color: AppColors.textPrimary, size: 18),
+                            color: Colors.white, size: 16),
                       ),
                     ),
                     const Spacer(),
-                    Text('Configurações', style: AppTextStyles.headlineSmall),
+                    Text('Configurações',
+                        style: AppTextStyles.headlineSmall
+                            .copyWith(color: Colors.white)),
                     const Spacer(),
                     const SizedBox(width: 40),
                   ],
                 ),
               ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    _SectionLabel(label: 'Conta'),
-                    _SettingsTile(
-                      icon: Icons.person_rounded,
-                      label: 'Nome',
-                      value: user?.name ?? '',
-                      iconColor: AppColors.primary,
-                    ),
-                    _SettingsTile(
-                      icon: Icons.code_rounded,
-                      label: 'Linguagem',
-                      value: user?.language == 'python' ? 'Python 🐍' : 'Python 🐍',
-                      iconColor: AppColors.neonGreen,
-                    ),
-                    _SettingsTile(
-                      icon: Icons.access_time_rounded,
-                      label: 'Meta diária',
-                      value: '${user?.dailyGoalMinutes ?? 15} minutos',
-                      iconColor: AppColors.neonBlue,
-                    ),
-                    const SizedBox(height: 24),
-                    _SectionLabel(label: 'Sobre'),
-                    _SettingsTile(
-                      icon: Icons.info_rounded,
-                      label: 'Versão',
-                      value: '1.0.0',
-                      iconColor: AppColors.textMuted,
-                    ),
-                    _SettingsTile(
-                      icon: Icons.bug_report_rounded,
-                      label: 'Mascote',
-                      value: 'Buggo 🐛',
-                      iconColor: AppColors.neonPink,
-                    ),
-                    const SizedBox(height: 32),
-                    _DangerZone(ref: ref, context: context),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                const SizedBox(height: 8),
+                _SectionLabel('Conta'),
+                _SettingsTile(
+                  icon: Icons.person_rounded,
+                  label: 'Nome',
+                  value: user?.name ?? '',
+                  color: AppColors.primary,
+                ),
+                _SettingsTile(
+                  icon: Icons.code_rounded,
+                  label: 'Linguagem',
+                  value: 'Python',
+                  color: AppColors.success,
+                ),
+                _SettingsTile(
+                  icon: Icons.timer_rounded,
+                  label: 'Meta diária',
+                  value: '${user?.dailyGoalMinutes ?? 15} min',
+                  color: AppColors.levelBlue,
+                ),
+
+                const SizedBox(height: 24),
+                _SectionLabel('Sobre'),
+                _SettingsTile(
+                  icon: Icons.info_rounded,
+                  label: 'Versão',
+                  value: '1.0.0',
+                  color: AppColors.textMuted,
+                ),
+                _SettingsTile(
+                  icon: Icons.bug_report_rounded,
+                  label: 'Mascote',
+                  value: 'Buggo',
+                  color: AppColors.levelPink,
+                ),
+
+                const SizedBox(height: 32),
+                _DangerZone(ref: ref),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -98,19 +113,15 @@ class SettingsScreen extends ConsumerWidget {
 
 class _SectionLabel extends StatelessWidget {
   final String label;
-  const _SectionLabel({required this.label});
+  const _SectionLabel(this.label);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        label.toUpperCase(),
-        style: AppTextStyles.bodySmall.copyWith(
-          letterSpacing: 1.5,
-          color: AppColors.textMuted,
-        ),
-      ),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(label,
+          style: AppTextStyles.labelSmall
+              .copyWith(color: AppColors.textMuted, letterSpacing: 0.8)),
     );
   }
 }
@@ -119,51 +130,49 @@ class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final Color iconColor;
-  final VoidCallback? onTap;
+  final Color color;
 
   const _SettingsTile({
     required this.icon,
     required this.label,
     required this.value,
-    required this.iconColor,
-    this.onTap,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.cardBorder),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cardBorder, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-                child: Text(label, style: AppTextStyles.bodyLarge)),
-            Text(value, style: AppTextStyles.bodyMedium),
-            if (onTap != null) ...[
-              const SizedBox(width: 6),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.textMuted, size: 18),
-            ],
-          ],
-        ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(child: Text(label, style: AppTextStyles.bodyLarge)),
+          Text(value,
+              style: AppTextStyles.bodyMedium
+                  .copyWith(color: AppColors.textSecondary)),
+        ],
       ),
     );
   }
@@ -171,45 +180,56 @@ class _SettingsTile extends StatelessWidget {
 
 class _DangerZone extends StatelessWidget {
   final WidgetRef ref;
-  final BuildContext context;
 
-  const _DangerZone({required this.ref, required this.context});
+  const _DangerZone({required this.ref});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.error.withOpacity(0.05),
+        color: AppColors.error.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.error.withOpacity(0.3)),
+        border: Border.all(
+            color: AppColors.error.withValues(alpha: 0.3), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Zona de Perigo',
-            style: AppTextStyles.bodyLarge
-                .copyWith(color: AppColors.error),
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  color: AppColors.error, size: 18),
+              const SizedBox(width: 8),
+              Text('Zona de perigo',
+                  style: AppTextStyles.bodyLarge
+                      .copyWith(color: AppColors.error)),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
+          Text(
+            'Ações irreversíveis que afetam seu progresso',
+            style: AppTextStyles.bodySmall,
+          ),
+          const SizedBox(height: 14),
           GestureDetector(
-            onTap: () => _confirmReset(context),
+            onTap: () => _confirm(context),
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 12),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.15),
+                color: AppColors.error.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.5), width: 1.5),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.restart_alt,
-                      color: AppColors.error, size: 20),
-                  const SizedBox(width: 10),
+                  Icon(Icons.restart_alt, color: AppColors.error, size: 20),
+                  const SizedBox(width: 8),
                   Text('Resetar progresso',
-                      style: AppTextStyles.bodyLarge
+                      style: AppTextStyles.labelLarge
                           .copyWith(color: AppColors.error)),
                 ],
               ),
@@ -220,35 +240,84 @@ class _DangerZone extends StatelessWidget {
     );
   }
 
-  void _confirmReset(BuildContext ctx) {
+  void _confirm(BuildContext ctx) {
     showDialog(
       context: ctx,
-      builder: (_) => AlertDialog(
+      builder: (_) => Dialog(
         backgroundColor: AppColors.surface,
-        title:
-            Text('Resetar tudo?', style: AppTextStyles.headlineSmall),
-        content: Text(
-          'Isso apagará todo o seu progresso. Tem certeza?',
-          style: AppTextStyles.bodyMedium,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Resetar tudo?',
+                  style: AppTextStyles.headlineMedium
+                      .copyWith(color: AppColors.error)),
+              const SizedBox(height: 8),
+              Text(
+                'Isso apagará todo o seu progresso.\nTem certeza?',
+                style: AppTextStyles.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Cancelar',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.labelLarge
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        Navigator.of(ctx).pop();
+                        await HiveStorage.user.clear();
+                        await HiveStorage.progress.clear();
+                        ref.invalidate(userProvider);
+                        if (ctx.mounted) ctx.go(AppRouter.onboarding);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.error.withValues(alpha: 0.35),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'Resetar',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.labelLarge
+                              .copyWith(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(_).pop(),
-            child: const Text('Cancelar',
-                style: TextStyle(color: AppColors.textMuted)),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(_).pop();
-              await HiveStorage.user.clear();
-              await HiveStorage.progress.clear();
-              ref.invalidate(userProvider);
-              if (ctx.mounted) ctx.go(AppRouter.onboarding);
-            },
-            child: const Text('Resetar',
-                style: TextStyle(color: AppColors.error)),
-          ),
-        ],
       ),
     );
   }

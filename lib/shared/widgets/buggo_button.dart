@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 
@@ -29,9 +28,26 @@ class BuggoButton extends StatefulWidget {
 
 class _BuggoButtonState extends State<BuggoButton>
     with SingleTickerProviderStateMixin {
-  bool _pressed = false;
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
 
-  LinearGradient get _gradient {
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 100));
+    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Gradient? get _gradient {
+    if (widget.onPressed == null) return null;
     switch (widget.variant) {
       case BuggoButtonVariant.primary:
         return AppColors.primaryGradient;
@@ -39,71 +55,131 @@ class _BuggoButtonState extends State<BuggoButton>
         return AppColors.successGradient;
       case BuggoButtonVariant.danger:
         return const LinearGradient(
-            colors: [Color(0xFFFF1744), Color(0xFFFF6B00)]);
+            colors: [Color(0xFFEF4444), Color(0xFFDC2626)]);
+      default:
+        return null;
+    }
+  }
+
+  Color get _bgColor {
+    if (widget.onPressed == null) return AppColors.divider;
+    switch (widget.variant) {
       case BuggoButtonVariant.secondary:
-        return const LinearGradient(
-            colors: [AppColors.surface, AppColors.surfaceVariant]);
+        return AppColors.surface;
       case BuggoButtonVariant.ghost:
-        return const LinearGradient(
-            colors: [Colors.transparent, Colors.transparent]);
+        return Colors.transparent;
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  Color get _textColor {
+    if (widget.onPressed == null) return AppColors.textMuted;
+    switch (widget.variant) {
+      case BuggoButtonVariant.secondary:
+        return AppColors.primary;
+      case BuggoButtonVariant.ghost:
+        return AppColors.primary;
+      default:
+        return Colors.white;
+    }
+  }
+
+  Border? get _border {
+    switch (widget.variant) {
+      case BuggoButtonVariant.secondary:
+        return Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5);
+      case BuggoButtonVariant.ghost:
+        return null;
+      default:
+        return null;
+    }
+  }
+
+  List<BoxShadow> get _shadows {
+    if (widget.onPressed == null) return [];
+    switch (widget.variant) {
+      case BuggoButtonVariant.primary:
+        return [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ];
+      case BuggoButtonVariant.success:
+        return [
+          BoxShadow(
+            color: AppColors.success.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ];
+      case BuggoButtonVariant.danger:
+        return [
+          BoxShadow(
+            color: AppColors.error.withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ];
+      default:
+        return [];
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onPressed?.call();
-      },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.95 : 1.0,
-        duration: const Duration(milliseconds: 100),
+      onTapDown: widget.onPressed == null ? null : (_) => _ctrl.forward(),
+      onTapUp: widget.onPressed == null
+          ? null
+          : (_) {
+              _ctrl.reverse();
+              widget.onPressed?.call();
+            },
+      onTapCancel: () => _ctrl.reverse(),
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (_, child) => Transform.scale(
+          scale: _scale.value,
+          child: child,
+        ),
         child: Container(
           width: widget.width,
-          height: 56,
+          height: 52,
           decoration: BoxDecoration(
             gradient: _gradient,
-            borderRadius: BorderRadius.circular(16),
-            border: widget.variant == BuggoButtonVariant.secondary
-                ? Border.all(color: AppColors.cardBorder, width: 1.5)
-                : null,
-            boxShadow: widget.onPressed != null &&
-                    widget.variant != BuggoButtonVariant.ghost
-                ? [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.4),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
-                : null,
+            color: _gradient == null ? _bgColor : null,
+            borderRadius: BorderRadius.circular(100),
+            border: _border,
+            boxShadow: _shadows,
           ),
           child: Center(
             child: widget.isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
+                ? SizedBox(
+                    width: 22,
+                    height: 22,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
+                        color: _textColor, strokeWidth: 2.5),
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (widget.icon != null) ...[
-                        Icon(widget.icon, color: Colors.white, size: 20),
+                        Icon(widget.icon, color: _textColor, size: 20),
                         const SizedBox(width: 8),
                       ],
-                      Text(widget.label, style: AppTextStyles.labelLarge),
+                      Text(
+                        widget.label,
+                        style: AppTextStyles.labelLarge
+                            .copyWith(color: _textColor),
+                      ),
                     ],
                   ),
           ),
         ),
       ),
-    )
-        .animate(target: widget.onPressed == null ? 0.5 : 1.0)
-        .fade(duration: 200.ms);
+    );
   }
 }

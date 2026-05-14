@@ -1,7 +1,7 @@
 class UserProfile {
   final String name;
   final String language;
-  final String level; // 'child', 'teen', 'adult'
+  final String level;
   final int dailyGoalMinutes;
   final int xp;
   final int coins;
@@ -9,6 +9,8 @@ class UserProfile {
   final DateTime? lastStudyDate;
   final List<String> completedLessons;
   final List<String> unlockedAchievements;
+  final int avatarIndex;       // which pixel art avatar (0-5)
+  final String? customPhotoPath; // path to user's own photo
 
   const UserProfile({
     required this.name,
@@ -21,6 +23,8 @@ class UserProfile {
     this.lastStudyDate,
     this.completedLessons = const [],
     this.unlockedAchievements = const [],
+    this.avatarIndex = 0,
+    this.customPhotoPath,
   });
 
   UserProfile copyWith({
@@ -34,6 +38,9 @@ class UserProfile {
     DateTime? lastStudyDate,
     List<String>? completedLessons,
     List<String>? unlockedAchievements,
+    int? avatarIndex,
+    String? customPhotoPath,
+    bool clearPhoto = false,
   }) {
     return UserProfile(
       name: name ?? this.name,
@@ -46,6 +53,8 @@ class UserProfile {
       lastStudyDate: lastStudyDate ?? this.lastStudyDate,
       completedLessons: completedLessons ?? this.completedLessons,
       unlockedAchievements: unlockedAchievements ?? this.unlockedAchievements,
+      avatarIndex: avatarIndex ?? this.avatarIndex,
+      customPhotoPath: clearPhoto ? null : (customPhotoPath ?? this.customPhotoPath),
     );
   }
 
@@ -60,6 +69,8 @@ class UserProfile {
         'lastStudyDate': lastStudyDate?.toIso8601String(),
         'completedLessons': completedLessons,
         'unlockedAchievements': unlockedAchievements,
+        'avatarIndex': avatarIndex,
+        'customPhotoPath': customPhotoPath,
       };
 
   factory UserProfile.fromMap(Map<dynamic, dynamic> map) => UserProfile(
@@ -77,6 +88,8 @@ class UserProfile {
             (map['completedLessons'] as List?)?.cast<String>() ?? [],
         unlockedAchievements:
             (map['unlockedAchievements'] as List?)?.cast<String>() ?? [],
+        avatarIndex: map['avatarIndex'] as int? ?? 0,
+        customPhotoPath: map['customPhotoPath'] as String?,
       );
 
   int get currentLevel => (xp / 100).floor() + 1;
