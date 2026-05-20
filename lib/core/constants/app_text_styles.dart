@@ -10,21 +10,21 @@ class AppTextStyles {
         fontSize: 38,
         fontWeight: FontWeight.w900,
         color: AppColors.textPrimary,
-        letterSpacing: -1,
+        letterSpacing: 0,
       );
 
   static TextStyle get displayMedium => GoogleFonts.nunito(
         fontSize: 30,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
-        letterSpacing: -0.5,
+        letterSpacing: 0,
       );
 
   static TextStyle get headlineLarge => GoogleFonts.nunito(
         fontSize: 26,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
-        letterSpacing: -0.3,
+        letterSpacing: 0,
       );
 
   static TextStyle get headlineMedium => GoogleFonts.nunito(
@@ -61,14 +61,14 @@ class AppTextStyles {
         fontSize: 16,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
-        letterSpacing: 0.3,
+        letterSpacing: 0,
       );
 
   static TextStyle get labelSmall => GoogleFonts.nunito(
         fontSize: 11,
         fontWeight: FontWeight.w700,
         color: AppColors.textMuted,
-        letterSpacing: 0.5,
+        letterSpacing: 0,
       );
 
   // Code (Fira Code)
@@ -101,6 +101,6 @@ class AppTextStyles {
         fontSize: 11,
         fontWeight: FontWeight.w700,
         color: AppColors.textSecondary,
-        letterSpacing: 0.4,
+        letterSpacing: 0,
       );
 }
