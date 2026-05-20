@@ -6,8 +6,11 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/levels/presentation/screens/level_map_screen.dart';
 import '../../features/challenges/presentation/screens/challenge_screen.dart';
 import '../../features/challenges/presentation/screens/success_screen.dart';
+import '../../features/achievements/presentation/screens/achievements_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/market/presentation/screens/market_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../shared/widgets/main_navigation_shell.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -17,6 +20,8 @@ class AppRouter {
   static const String challenge = '/challenge';
   static const String success = '/success';
   static const String profile = '/profile';
+  static const String trophy = '/trophy';
+  static const String market = '/market';
   static const String settings = '/settings';
 
   static final GoRouter router = GoRouter(
@@ -31,54 +36,73 @@ class AppRouter {
         pageBuilder: (context, state) =>
             _slidePage(state, const OnboardingScreen()),
       ),
-      GoRoute(
-        path: home,
-        pageBuilder: (context, state) => _fadePage(state, const HomeScreen()),
-      ),
-      GoRoute(
-        path: levelMap,
-        pageBuilder: (context, state) {
-          final levelId = state.extra as int? ?? 0;
-          return _slidePage(state, LevelMapScreen(levelId: levelId));
-        },
-      ),
-      GoRoute(
-        path: challenge,
-        pageBuilder: (context, state) {
-          final args = state.extra as Map<String, dynamic>? ?? {};
-          return _slidePage(
-            state,
-            ChallengeScreen(
-              levelIndex: args['levelIndex'] as int? ?? 0,
-              lessonIndex: args['lessonIndex'] as int? ?? 0,
-            ),
-          );
-        },
-      ),
-      GoRoute(
-        path: success,
-        pageBuilder: (context, state) {
-          final args = state.extra as Map<String, dynamic>? ?? {};
-          return _slidePage(
-            state,
-            SuccessScreen(
-              xpEarned: args['xpEarned'] as int? ?? 10,
-              coinsEarned: args['coinsEarned'] as int? ?? 5,
-              nextRoute: args['nextRoute'] as String? ?? AppRouter.home,
-              nextArgs: args['nextArgs'],
-            ),
-          );
-        },
-      ),
-      GoRoute(
-        path: profile,
-        pageBuilder: (context, state) =>
-            _slidePage(state, const ProfileScreen()),
-      ),
-      GoRoute(
-        path: settings,
-        pageBuilder: (context, state) =>
-            _slidePage(state, const SettingsScreen()),
+      ShellRoute(
+        builder: (context, state, child) => MainNavigationShell(
+          location: state.uri.path,
+          child: child,
+        ),
+        routes: [
+          GoRoute(
+            path: home,
+            pageBuilder: (context, state) =>
+                _fadePage(state, const HomeScreen()),
+          ),
+          GoRoute(
+            path: levelMap,
+            pageBuilder: (context, state) {
+              final levelId = state.extra as int? ?? 0;
+              return _slidePage(state, LevelMapScreen(levelId: levelId));
+            },
+          ),
+          GoRoute(
+            path: challenge,
+            pageBuilder: (context, state) {
+              final args = state.extra as Map<String, dynamic>? ?? {};
+              return _slidePage(
+                state,
+                ChallengeScreen(
+                  levelIndex: args['levelIndex'] as int? ?? 0,
+                  lessonIndex: args['lessonIndex'] as int? ?? 0,
+                ),
+              );
+            },
+          ),
+          GoRoute(
+            path: success,
+            pageBuilder: (context, state) {
+              final args = state.extra as Map<String, dynamic>? ?? {};
+              return _slidePage(
+                state,
+                SuccessScreen(
+                  xpEarned: args['xpEarned'] as int? ?? 10,
+                  coinsEarned: args['coinsEarned'] as int? ?? 5,
+                  nextRoute: args['nextRoute'] as String? ?? AppRouter.home,
+                  nextArgs: args['nextArgs'],
+                ),
+              );
+            },
+          ),
+          GoRoute(
+            path: profile,
+            pageBuilder: (context, state) =>
+                _slidePage(state, const ProfileScreen()),
+          ),
+          GoRoute(
+            path: trophy,
+            pageBuilder: (context, state) =>
+                _slidePage(state, const AchievementsScreen()),
+          ),
+          GoRoute(
+            path: market,
+            pageBuilder: (context, state) =>
+                _slidePage(state, const MarketScreen()),
+          ),
+          GoRoute(
+            path: settings,
+            pageBuilder: (context, state) =>
+                _slidePage(state, const SettingsScreen()),
+          ),
+        ],
       ),
     ],
   );

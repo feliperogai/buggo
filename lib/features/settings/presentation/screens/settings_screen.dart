@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/storage/hive_storage.dart';
+import '../../../../shared/constants/learning_languages.dart';
 import '../../../../shared/providers/user_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -22,8 +23,7 @@ class SettingsScreen extends ConsumerWidget {
           Container(
             decoration: const BoxDecoration(
               gradient: AppColors.headerGradient,
-              borderRadius:
-                  BorderRadius.vertical(bottom: Radius.circular(28)),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
             ),
             child: SafeArea(
               bottom: false,
@@ -32,7 +32,9 @@ class SettingsScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: () => context.pop(),
+                      onTap: () => context.canPop()
+                          ? context.pop()
+                          : context.go(AppRouter.profile),
                       child: Container(
                         width: 40,
                         height: 40,
@@ -74,7 +76,7 @@ class SettingsScreen extends ConsumerWidget {
                 _SettingsTile(
                   icon: Icons.code_rounded,
                   label: 'Linguagem',
-                  value: 'Python',
+                  value: learningLanguageFor(user?.language ?? 'logic').label,
                   color: AppColors.success,
                 ),
                 _SettingsTile(
@@ -83,7 +85,6 @@ class SettingsScreen extends ConsumerWidget {
                   value: '${user?.dailyGoalMinutes ?? 15} min',
                   color: AppColors.levelBlue,
                 ),
-
                 const SizedBox(height: 24),
                 _SectionLabel('Sobre'),
                 _SettingsTile(
@@ -98,7 +99,6 @@ class SettingsScreen extends ConsumerWidget {
                   value: 'Buggo',
                   color: AppColors.levelPink,
                 ),
-
                 const SizedBox(height: 32),
                 _DangerZone(ref: ref),
                 const SizedBox(height: 16),
@@ -121,7 +121,7 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(label,
           style: AppTextStyles.labelSmall
-              .copyWith(color: AppColors.textMuted, letterSpacing: 0.8)),
+              .copyWith(color: AppColors.textMuted, letterSpacing: 0)),
     );
   }
 }
@@ -202,8 +202,8 @@ class _DangerZone extends StatelessWidget {
                   color: AppColors.error, size: 18),
               const SizedBox(width: 8),
               Text('Zona de perigo',
-                  style: AppTextStyles.bodyLarge
-                      .copyWith(color: AppColors.error)),
+                  style:
+                      AppTextStyles.bodyLarge.copyWith(color: AppColors.error)),
             ],
           ),
           const SizedBox(height: 4),

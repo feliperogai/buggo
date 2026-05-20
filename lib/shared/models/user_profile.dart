@@ -9,7 +9,7 @@ class UserProfile {
   final DateTime? lastStudyDate;
   final List<String> completedLessons;
   final List<String> unlockedAchievements;
-  final int avatarIndex;       // which pixel art avatar (0-5)
+  final int avatarIndex; // which pixel art avatar (0-5)
   final String? customPhotoPath; // path to user's own photo
 
   const UserProfile({
@@ -54,7 +54,8 @@ class UserProfile {
       completedLessons: completedLessons ?? this.completedLessons,
       unlockedAchievements: unlockedAchievements ?? this.unlockedAchievements,
       avatarIndex: avatarIndex ?? this.avatarIndex,
-      customPhotoPath: clearPhoto ? null : (customPhotoPath ?? this.customPhotoPath),
+      customPhotoPath:
+          clearPhoto ? null : (customPhotoPath ?? this.customPhotoPath),
     );
   }
 
@@ -75,7 +76,7 @@ class UserProfile {
 
   factory UserProfile.fromMap(Map<dynamic, dynamic> map) => UserProfile(
         name: map['name'] as String? ?? '',
-        language: map['language'] as String? ?? 'python',
+        language: map['language'] as String? ?? 'logic',
         level: map['level'] as String? ?? 'adult',
         dailyGoalMinutes: map['dailyGoalMinutes'] as int? ?? 15,
         xp: map['xp'] as int? ?? 0,

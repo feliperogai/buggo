@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../data/content/python_curriculum.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/pixel_avatars.dart';
@@ -44,7 +45,9 @@ class ProfileScreen extends ConsumerWidget {
                       Row(
                         children: [
                           GestureDetector(
-                            onTap: () => context.pop(),
+                            onTap: () => context.canPop()
+                                ? context.pop()
+                                : context.go(AppRouter.home),
                             child: Container(
                               width: 40,
                               height: 40,
@@ -64,7 +67,22 @@ class ProfileScreen extends ConsumerWidget {
                               style: AppTextStyles.headlineSmall
                                   .copyWith(color: Colors.white)),
                           const Spacer(),
-                          const SizedBox(width: 40),
+                          GestureDetector(
+                            onTap: () => context.push(AppRouter.settings),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.35),
+                                    width: 1.5),
+                              ),
+                              child: const Icon(Icons.settings_rounded,
+                                  color: Colors.white, size: 18),
+                            ),
+                          ),
                         ],
                       ),
 
@@ -105,8 +123,8 @@ class ProfileScreen extends ConsumerWidget {
                                 decoration: BoxDecoration(
                                   color: AppColors.accent,
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.white, width: 2),
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
                                   boxShadow: [
                                     BoxShadow(
                                       color: AppColors.accent
@@ -127,9 +145,10 @@ class ProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
 
                       Text(user.name,
-                          style: AppTextStyles.headlineLarge
-                              .copyWith(color: Colors.white))
-                          .animate(delay: 100.ms).fade(),
+                              style: AppTextStyles.headlineLarge
+                                  .copyWith(color: Colors.white))
+                          .animate(delay: 100.ms)
+                          .fade(),
 
                       const SizedBox(height: 6),
 
@@ -206,12 +225,16 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
 
                   _ProgressCard(completed: done, total: total)
-                      .animate(delay: 400.ms).slideY(begin: 0.3).fade(),
+                      .animate(delay: 400.ms)
+                      .slideY(begin: 0.3)
+                      .fade(),
 
                   const SizedBox(height: 20),
 
                   _AchievementsSection(user: user)
-                      .animate(delay: 500.ms).slideY(begin: 0.3).fade(),
+                      .animate(delay: 500.ms)
+                      .slideY(begin: 0.3)
+                      .fade(),
 
                   const SizedBox(height: 24),
                 ],
@@ -265,8 +288,7 @@ class _StatCard extends StatelessWidget {
           Text(value,
               style: AppTextStyles.headlineMedium.copyWith(color: color)),
           Text(label,
-              style: AppTextStyles.bodySmall,
-              textAlign: TextAlign.center),
+              style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
         ],
       ),
     );
@@ -288,8 +310,8 @@ class _ProgressCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
-        border:
-            Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 1.5),
+        border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.2), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.07),
@@ -304,8 +326,7 @@ class _ProgressCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Progresso geral',
-                  style: AppTextStyles.bodyLarge),
+              Text('Progresso geral', style: AppTextStyles.bodyLarge),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -314,8 +335,8 @@ class _ProgressCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text('$completed/$total',
-                    style: AppTextStyles.labelSmall
-                        .copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+                    style: AppTextStyles.labelSmall.copyWith(
+                        color: Colors.white, fontWeight: FontWeight.w800)),
               ),
             ],
           ),
@@ -364,10 +385,11 @@ class _AchievementsSection extends StatelessWidget {
   const _AchievementsSection({required this.user});
 
   static const _achievements = [
-    _Achievement('first_lesson', 'Primeira\nLição',  Icons.star_rounded),
-    _Achievement('five_lessons', '5\nLições',        Icons.military_tech_rounded),
-    _Achievement('streak_3',     '3 Dias\nSeguidos', Icons.local_fire_department_rounded),
-    _Achievement('python_start', 'Pythonista',       Icons.terminal_rounded),
+    _Achievement('first_lesson', 'Primeira\nLição', Icons.star_rounded),
+    _Achievement('five_lessons', '5\nLições', Icons.military_tech_rounded),
+    _Achievement(
+        'streak_3', '3 Dias\nSeguidos', Icons.local_fire_department_rounded),
+    _Achievement('python_start', 'Pythonista', Icons.terminal_rounded),
   ];
 
   bool _unlocked(_Achievement a) {
