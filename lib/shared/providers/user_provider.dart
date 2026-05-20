@@ -32,6 +32,11 @@ class UserNotifier extends Notifier<UserProfile?> {
     saveProfile(updated);
   }
 
+  void updateLanguage(String language) {
+    if (state == null) return;
+    saveProfile(state!.copyWith(language: language));
+  }
+
   void completeLesson(String lessonId, {required int xp, required int coins}) {
     if (state == null) return;
     if (state!.completedLessons.contains(lessonId)) return;

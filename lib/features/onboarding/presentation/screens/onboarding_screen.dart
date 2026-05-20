@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../shared/constants/learning_languages.dart';
 import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/buggo_button.dart';
@@ -22,7 +23,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _page = 0;
 
   String _name = '';
-  String _language = 'python';
+  String _language = 'logic';
   String _userLevel = 'beginner';
   int _dailyGoal = 15;
 
@@ -41,7 +42,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         SnackBar(
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Row(children: [
             const Icon(Icons.warning_rounded, color: Colors.white, size: 18),
             const SizedBox(width: 8),
@@ -107,10 +109,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _page = i),
                 children: [
-                  _NamePage(ctrl: _nameCtrl, onChanged: (v) => setState(() => _name = v)),
-                  _LanguagePage(selected: _language, onSelect: (v) => setState(() => _language = v)),
-                  _LevelPage(selected: _userLevel, onSelect: (v) => setState(() => _userLevel = v)),
-                  _GoalPage(selected: _dailyGoal, onSelect: (v) => setState(() => _dailyGoal = v)),
+                  _NamePage(
+                      ctrl: _nameCtrl,
+                      onChanged: (v) => setState(() => _name = v)),
+                  _LanguagePage(
+                      selected: _language,
+                      onSelect: (v) => setState(() => _language = v)),
+                  _LevelPage(
+                      selected: _userLevel,
+                      onSelect: (v) => setState(() => _userLevel = v)),
+                  _GoalPage(
+                      selected: _dailyGoal,
+                      onSelect: (v) => setState(() => _dailyGoal = v)),
                 ],
               ),
             ),
@@ -119,7 +129,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
               child: BuggoButton(
                 label: _page == 3 ? 'Começar!' : 'Próximo',
-                icon: _page == 3 ? Icons.rocket_launch_rounded : Icons.arrow_forward_rounded,
+                icon: _page == 3
+                    ? Icons.rocket_launch_rounded
+                    : Icons.arrow_forward_rounded,
                 onPressed: _next,
                 width: double.infinity,
               ),
@@ -148,7 +160,13 @@ class _NamePage extends StatelessWidget {
           const MascotWidget(
             mood: MascotMood.happy,
             speechBubble: 'Olá! Eu sou o Buggo!',
-          ).animate().scale(begin: const Offset(0.8, 0.8), duration: 500.ms, curve: Curves.elasticOut).fade(),
+          )
+              .animate()
+              .scale(
+                  begin: const Offset(0.8, 0.8),
+                  duration: 500.ms,
+                  curve: Curves.elasticOut)
+              .fade(),
           const SizedBox(height: 32),
           Text(
             'Como posso\nte chamar?',
@@ -183,9 +201,11 @@ class _NamePage extends StatelessWidget {
               cursorColor: AppColors.primary,
               decoration: InputDecoration(
                 hintText: 'Seu nome aqui...',
-                hintStyle: AppTextStyles.bodyLarge.copyWith(color: AppColors.textMuted),
+                hintStyle: AppTextStyles.bodyLarge
+                    .copyWith(color: AppColors.textMuted),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               ),
             ),
           ).animate(delay: 200.ms).slideY(begin: 0.3, duration: 400.ms).fade(),
@@ -195,47 +215,202 @@ class _NamePage extends StatelessWidget {
   }
 }
 
-class _LanguagePage extends StatelessWidget {
+class _LanguagePage extends StatefulWidget {
   final String selected;
   final ValueChanged<String> onSelect;
 
   const _LanguagePage({required this.selected, required this.onSelect});
 
   @override
-  Widget build(BuildContext context) {
-    final opts = [
-      {'id': 'python',     'label': 'Python',     'icon': Icons.terminal_rounded,    'sub': 'Iniciante friendly', 'ok': true},
-      {'id': 'javascript', 'label': 'JavaScript', 'icon': Icons.code_rounded,         'sub': 'Web & apps',         'ok': false},
-      {'id': 'java',       'label': 'Java',       'icon': Icons.coffee_rounded,       'sub': 'Robusto e escalável','ok': false},
-    ];
+  State<_LanguagePage> createState() => _LanguagePageState();
+}
 
+class _LanguagePageState extends State<_LanguagePage> {
+  String? _openModuleId = 'fundamentals';
+
+  @override
+  Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
           const SizedBox(height: 40),
-          Text('Qual linguagem\ndeseja aprender?',
-              style: AppTextStyles.headlineLarge, textAlign: TextAlign.center)
-              .animate().slideY(begin: 0.3, duration: 400.ms).fade(),
+          Text('Comece pelos\nfundamentos',
+                  style: AppTextStyles.headlineLarge,
+                  textAlign: TextAlign.center)
+              .animate()
+              .slideY(begin: 0.3, duration: 400.ms)
+              .fade(),
           const SizedBox(height: 8),
-          Text('Você pode mudar isso depois', style: AppTextStyles.bodyMedium)
-              .animate(delay: 100.ms).fade(),
+          Text('Depois da Lógica, as linguagens são liberadas',
+                  style: AppTextStyles.bodyMedium)
+              .animate(delay: 100.ms)
+              .fade(),
           const SizedBox(height: 32),
-          ...opts.asMap().entries.map((e) {
-            final opt = e.value;
-            final ok = opt['ok'] as bool;
-            return _OptionCard(
-              icon: opt['icon'] as IconData,
-              label: opt['label'] as String,
-              subtitle: opt['sub'] as String,
-              badge: ok ? null : 'Em breve',
-              isSelected: selected == opt['id'],
-              isDisabled: !ok,
-              onTap: ok ? () => onSelect(opt['id'] as String) : null,
-            ).animate(delay: (e.key * 80).ms).slideX(begin: 0.3).fade();
-          }),
+          for (final module in learningModules) ...[
+            _LanguageModuleLabel(
+              module: module,
+              isOpen: _openModuleId == module.id,
+              count: learningLanguagesForModule(module.id).length,
+              onTap: () {
+                setState(() {
+                  _openModuleId = _openModuleId == module.id ? null : module.id;
+                });
+              },
+            ),
+            _LanguageModuleOptions(
+              moduleId: module.id,
+              isOpen: _openModuleId == module.id,
+              selectedLanguage: widget.selected,
+              hasCompletedFoundations: false,
+              onSelect: widget.onSelect,
+            ),
+            const SizedBox(height: 10),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _LanguageModuleLabel extends StatelessWidget {
+  final LearningModule module;
+  final bool isOpen;
+  final int count;
+  final VoidCallback onTap;
+
+  const _LanguageModuleLabel({
+    required this.module,
+    required this.isOpen,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          color: isOpen
+              ? AppColors.primary.withValues(alpha: 0.07)
+              : AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isOpen
+                ? AppColors.primary.withValues(alpha: 0.28)
+                : AppColors.cardBorder,
+            width: 1.4,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(module.icon, color: AppColors.primary, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                module.label,
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: AppColors.cardBorder, width: 1),
+              ),
+              child: Text(
+                '$count',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            AnimatedRotation(
+              turns: isOpen ? 0.5 : 0,
+              duration: const Duration(milliseconds: 180),
+              child: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: AppColors.textMuted,
+                size: 24,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageModuleOptions extends StatelessWidget {
+  final String moduleId;
+  final bool isOpen;
+  final String selectedLanguage;
+  final bool hasCompletedFoundations;
+  final ValueChanged<String> onSelect;
+
+  const _LanguageModuleOptions({
+    required this.moduleId,
+    required this.isOpen,
+    required this.selectedLanguage,
+    required this.hasCompletedFoundations,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final options = learningLanguagesForModule(moduleId);
+
+    return AnimatedCrossFade(
+      firstCurve: Curves.easeOutCubic,
+      secondCurve: Curves.easeOutCubic,
+      sizeCurve: Curves.easeInOutCubic,
+      duration: const Duration(milliseconds: 280),
+      reverseDuration: const Duration(milliseconds: 220),
+      crossFadeState:
+          isOpen ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+      firstChild: Column(
+        children: [
+          for (final entry in options.asMap().entries) ...[
+            Builder(
+              builder: (context) {
+                final statusLabel = learningLanguageStatusLabel(
+                  entry.value,
+                  hasCompletedFoundations: hasCompletedFoundations,
+                );
+                final isUnlocked = statusLabel == null;
+
+                return _OptionCard(
+                  icon: entry.value.icon,
+                  label: entry.value.label,
+                  subtitle: entry.value.description,
+                  badge: statusLabel,
+                  isSelected: selectedLanguage == entry.value.id,
+                  isDisabled: !isUnlocked,
+                  onTap: isUnlocked ? () => onSelect(entry.value.id) : null,
+                )
+                    .animate(delay: (entry.key * 35).ms)
+                    .fade(duration: 180.ms, curve: Curves.easeOutCubic)
+                    .slideY(
+                      begin: -0.06,
+                      end: 0,
+                      duration: 200.ms,
+                      curve: Curves.easeOutCubic,
+                    );
+              },
+            ),
+          ],
+        ],
+      ),
+      secondChild: const SizedBox(width: double.infinity),
     );
   }
 }
@@ -249,9 +424,24 @@ class _LevelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final opts = [
-      {'id': 'beginner',     'label': 'Nunca programei', 'icon': Icons.eco_rounded,      'sub': 'Do zero ao básico'},
-      {'id': 'some',         'label': 'Sei um pouco',    'icon': Icons.auto_stories_rounded, 'sub': 'Reforçar o básico'},
-      {'id': 'intermediate', 'label': 'Já programo',     'icon': Icons.laptop_rounded,   'sub': 'Ir além'},
+      {
+        'id': 'beginner',
+        'label': 'Nunca programei',
+        'icon': Icons.eco_rounded,
+        'sub': 'Do zero ao básico'
+      },
+      {
+        'id': 'some',
+        'label': 'Sei um pouco',
+        'icon': Icons.auto_stories_rounded,
+        'sub': 'Reforçar o básico'
+      },
+      {
+        'id': 'intermediate',
+        'label': 'Já programo',
+        'icon': Icons.laptop_rounded,
+        'sub': 'Ir além'
+      },
     ];
 
     return SingleChildScrollView(
@@ -260,11 +450,16 @@ class _LevelPage extends StatelessWidget {
         children: [
           const SizedBox(height: 40),
           Text('Qual seu\nnível atual?',
-              style: AppTextStyles.headlineLarge, textAlign: TextAlign.center)
-              .animate().slideY(begin: 0.3, duration: 400.ms).fade(),
+                  style: AppTextStyles.headlineLarge,
+                  textAlign: TextAlign.center)
+              .animate()
+              .slideY(begin: 0.3, duration: 400.ms)
+              .fade(),
           const SizedBox(height: 8),
-          Text('Personalizamos seu caminho de aprendizado', style: AppTextStyles.bodyMedium)
-              .animate(delay: 100.ms).fade(),
+          Text('Personalizamos seu caminho de aprendizado',
+                  style: AppTextStyles.bodyMedium)
+              .animate(delay: 100.ms)
+              .fade(),
           const SizedBox(height: 32),
           ...opts.asMap().entries.map((e) {
             final opt = e.value;
@@ -291,9 +486,24 @@ class _GoalPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final opts = [
-      {'min': 5,  'label': '5 minutos',  'icon': Icons.bolt_rounded,                   'sub': 'Ritmo casual'},
-      {'min': 15, 'label': '15 minutos', 'icon': Icons.track_changes_rounded,           'sub': 'Ritmo regular'},
-      {'min': 30, 'label': '30 minutos', 'icon': Icons.local_fire_department_rounded,   'sub': 'Ritmo intenso'},
+      {
+        'min': 5,
+        'label': '5 minutos',
+        'icon': Icons.bolt_rounded,
+        'sub': 'Ritmo casual'
+      },
+      {
+        'min': 15,
+        'label': '15 minutos',
+        'icon': Icons.track_changes_rounded,
+        'sub': 'Ritmo regular'
+      },
+      {
+        'min': 30,
+        'label': '30 minutos',
+        'icon': Icons.local_fire_department_rounded,
+        'sub': 'Ritmo intenso'
+      },
     ];
 
     return SingleChildScrollView(
@@ -302,11 +512,16 @@ class _GoalPage extends StatelessWidget {
         children: [
           const SizedBox(height: 40),
           Text('Quanto tempo\npor dia?',
-              style: AppTextStyles.headlineLarge, textAlign: TextAlign.center)
-              .animate().slideY(begin: 0.3, duration: 400.ms).fade(),
+                  style: AppTextStyles.headlineLarge,
+                  textAlign: TextAlign.center)
+              .animate()
+              .slideY(begin: 0.3, duration: 400.ms)
+              .fade(),
           const SizedBox(height: 8),
-          Text('Consistência é mais importante que tempo', style: AppTextStyles.bodyMedium)
-              .animate(delay: 100.ms).fade(),
+          Text('Consistência é mais importante que tempo',
+                  style: AppTextStyles.bodyMedium)
+              .animate(delay: 100.ms)
+              .fade(),
           const SizedBox(height: 32),
           ...opts.asMap().entries.map((e) {
             final opt = e.value;
@@ -346,6 +561,9 @@ class _OptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final badgeColor =
+        badge == 'Bloqueado' ? AppColors.textMuted : AppColors.accent;
+
     return GestureDetector(
       onTap: onTap,
       child: Opacity(
@@ -386,7 +604,8 @@ class _OptionCard extends StatelessWidget {
                 ),
                 child: Icon(
                   icon,
-                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                  color:
+                      isSelected ? AppColors.primary : AppColors.textSecondary,
                   size: 24,
                 ),
               ),
@@ -403,23 +622,26 @@ class _OptionCard extends StatelessWidget {
               ),
               if (badge != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.12),
+                    color: badgeColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(badge!,
-                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.accent)),
+                      style:
+                          AppTextStyles.labelSmall.copyWith(color: badgeColor)),
                 ),
               if (isSelected)
                 Container(
                   width: 24,
                   height: 24,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: AppColors.primaryGradient,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_rounded, color: Colors.white, size: 15),
+                  child: const Icon(Icons.check_rounded,
+                      color: Colors.white, size: 15),
                 ),
             ],
           ),

@@ -95,10 +95,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     'Buggo',
                     style: AppTextStyles.displayLarge.copyWith(
                       color: Colors.white,
-                      letterSpacing: -2,
+                      letterSpacing: 0,
                     ),
                   ),
-                ).animate(delay: 350.ms).slideY(begin: 0.4, duration: 500.ms, curve: Curves.easeOut).fade(),
+                )
+                    .animate(delay: 350.ms)
+                    .slideY(begin: 0.4, duration: 500.ms, curve: Curves.easeOut)
+                    .fade(),
 
                 const SizedBox(height: 8),
 

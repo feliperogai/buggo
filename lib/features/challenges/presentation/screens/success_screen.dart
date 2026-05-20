@@ -115,7 +115,7 @@ class _SuccessScreenState extends State<SuccessScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(3, (i) {
-                        return Icon(
+                        return const Icon(
                           Icons.star_rounded,
                           color: AppColors.accent,
                           size: 32,
@@ -155,7 +155,7 @@ class _SuccessScreenState extends State<SuccessScreen> {
                         'Lição\nConcluída!',
                         style: AppTextStyles.displayMedium.copyWith(
                           color: Colors.white,
-                          letterSpacing: -1,
+                          letterSpacing: 0,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -179,14 +179,12 @@ class _SuccessScreenState extends State<SuccessScreen> {
                           label: '+${widget.xpEarned} XP',
                           icon: Icons.bolt_rounded,
                           color: AppColors.xpColor,
-                          gradient: AppColors.primaryGradient,
                         ).animate(delay: 500.ms).slideX(begin: -0.4).fade(),
                         const SizedBox(width: 16),
                         _RewardCard(
                           label: '+${widget.coinsEarned}',
                           icon: Icons.monetization_on_rounded,
                           color: AppColors.coinColor,
-                          gradient: AppColors.accentGradient,
                         ).animate(delay: 620.ms).slideX(begin: 0.4).fade(),
                       ],
                     ),
@@ -262,37 +260,27 @@ class _RewardCard extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
-  final LinearGradient gradient;
 
   const _RewardCard({
     required this.label,
     required this.icon,
     required this.color,
-    required this.gradient,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+    return SizedBox(
+      width: 116,
       child: Column(
         children: [
-          Icon(icon, color: Colors.white, size: 34),
+          Icon(icon, color: color, size: 36),
           const SizedBox(height: 8),
           Text(
             label,
-            style: AppTextStyles.headlineSmall.copyWith(color: Colors.white),
+            style: AppTextStyles.headlineSmall.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
