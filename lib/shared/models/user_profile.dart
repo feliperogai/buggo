@@ -1,4 +1,7 @@
 class UserProfile {
+  static const int maxLives = 5;
+  static const int maxStreakFreezes = 2;
+
   final String name;
   final String language;
   final String level;
@@ -11,6 +14,10 @@ class UserProfile {
   final List<String> unlockedAchievements;
   final int avatarIndex; // which pixel art avatar (0-5)
   final String? customPhotoPath; // path to user's own photo
+  final int lives;
+  final DateTime? lastLifeLostAt; // null while lives are full
+  final DateTime? unlimitedLivesUntil; // Buggo+ monthly plan expiry
+  final int streakFreezes;
 
   const UserProfile({
     required this.name,
@@ -25,6 +32,10 @@ class UserProfile {
     this.unlockedAchievements = const [],
     this.avatarIndex = 0,
     this.customPhotoPath,
+    this.lives = maxLives,
+    this.lastLifeLostAt,
+    this.unlimitedLivesUntil,
+    this.streakFreezes = 0,
   });
 
   UserProfile copyWith({
@@ -41,6 +52,11 @@ class UserProfile {
     int? avatarIndex,
     String? customPhotoPath,
     bool clearPhoto = false,
+    int? lives,
+    DateTime? lastLifeLostAt,
+    bool clearLastLifeLostAt = false,
+    DateTime? unlimitedLivesUntil,
+    int? streakFreezes,
   }) {
     return UserProfile(
       name: name ?? this.name,
@@ -56,6 +72,12 @@ class UserProfile {
       avatarIndex: avatarIndex ?? this.avatarIndex,
       customPhotoPath:
           clearPhoto ? null : (customPhotoPath ?? this.customPhotoPath),
+      lives: lives ?? this.lives,
+      lastLifeLostAt: clearLastLifeLostAt
+          ? null
+          : (lastLifeLostAt ?? this.lastLifeLostAt),
+      unlimitedLivesUntil: unlimitedLivesUntil ?? this.unlimitedLivesUntil,
+      streakFreezes: streakFreezes ?? this.streakFreezes,
     );
   }
 
@@ -72,6 +94,10 @@ class UserProfile {
         'unlockedAchievements': unlockedAchievements,
         'avatarIndex': avatarIndex,
         'customPhotoPath': customPhotoPath,
+        'lives': lives,
+        'lastLifeLostAt': lastLifeLostAt?.toIso8601String(),
+        'unlimitedLivesUntil': unlimitedLivesUntil?.toIso8601String(),
+        'streakFreezes': streakFreezes,
       };
 
   factory UserProfile.fromMap(Map<dynamic, dynamic> map) => UserProfile(
@@ -91,9 +117,33 @@ class UserProfile {
             (map['unlockedAchievements'] as List?)?.cast<String>() ?? [],
         avatarIndex: map['avatarIndex'] as int? ?? 0,
         customPhotoPath: map['customPhotoPath'] as String?,
+        lives: map['lives'] as int? ?? maxLives,
+        lastLifeLostAt: map['lastLifeLostAt'] != null
+            ? DateTime.tryParse(map['lastLifeLostAt'] as String)
+            : null,
+        unlimitedLivesUntil: map['unlimitedLivesUntil'] != null
+            ? DateTime.tryParse(map['unlimitedLivesUntil'] as String)
+            : null,
+        streakFreezes: map['streakFreezes'] as int? ?? 0,
       );
 
   int get currentLevel => (xp / 100).floor() + 1;
   int get xpToNextLevel => 100 - (xp % 100);
   double get xpProgress => (xp % 100) / 100.0;
+
+  bool get hasUnlimitedLives =>
+      unlimitedLivesUntil != null &&
+      unlimitedLivesUntil!.isAfter(DateTime.now());
+
+  bool get canPlay => hasUnlimitedLives || lives > 0;
+
+  /// Time remaining until all lives are automatically restored, or null if
+  /// lives are already full (no countdown running).
+  Duration? get timeUntilNextLife {
+    if (lastLifeLostAt == null) return null;
+    final target = lastLifeLostAt!.add(const Duration(hours: 24));
+    final now = DateTime.now();
+    if (!now.isBefore(target)) return Duration.zero;
+    return target.difference(now);
+  }
 }

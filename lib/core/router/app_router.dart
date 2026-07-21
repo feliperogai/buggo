@@ -10,6 +10,10 @@ import '../../features/achievements/presentation/screens/achievements_screen.dar
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/market/presentation/screens/market_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/streak/presentation/screens/streak_screen.dart';
+import '../../features/wallet/presentation/screens/coins_screen.dart';
+import '../../features/hearts/presentation/screens/hearts_screen.dart';
+import '../../features/ranking/presentation/screens/ranking_screen.dart';
 import '../../shared/widgets/main_navigation_shell.dart';
 
 class AppRouter {
@@ -23,6 +27,10 @@ class AppRouter {
   static const String trophy = '/trophy';
   static const String market = '/market';
   static const String settings = '/settings';
+  static const String streak = '/streak';
+  static const String coins = '/coins';
+  static const String hearts = '/hearts';
+  static const String achievements = '/achievements';
 
   static final GoRouter router = GoRouter(
     initialLocation: splash,
@@ -35,6 +43,26 @@ class AppRouter {
         path: onboarding,
         pageBuilder: (context, state) =>
             _slidePage(state, const OnboardingScreen()),
+      ),
+      GoRoute(
+        path: streak,
+        pageBuilder: (context, state) =>
+            _slidePage(state, const StreakScreen()),
+      ),
+      GoRoute(
+        path: coins,
+        pageBuilder: (context, state) =>
+            _slidePage(state, const CoinsScreen()),
+      ),
+      GoRoute(
+        path: hearts,
+        pageBuilder: (context, state) =>
+            _slidePage(state, const HeartsScreen()),
+      ),
+      GoRoute(
+        path: achievements,
+        pageBuilder: (context, state) =>
+            _slidePage(state, const AchievementsScreen()),
       ),
       ShellRoute(
         builder: (context, state, child) => MainNavigationShell(
@@ -90,7 +118,7 @@ class AppRouter {
           GoRoute(
             path: trophy,
             pageBuilder: (context, state) =>
-                _slidePage(state, const AchievementsScreen()),
+                _slidePage(state, const RankingScreen()),
           ),
           GoRoute(
             path: market,
