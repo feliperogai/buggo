@@ -9,8 +9,11 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/python_simulator.dart';
 import '../../../../data/content/python_curriculum.dart';
 import '../../../../shared/models/lesson.dart';
+import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/buggo_button.dart';
+import '../../../../shared/widgets/lives_badge.dart';
+import '../../../../shared/widgets/lives_recovery_card.dart';
 import '../../../../shared/widgets/mascot_widget.dart';
 
 class ChallengeScreen extends ConsumerStatefulWidget {
@@ -32,6 +35,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
   int? _selectedOption;
   bool _answered = false;
   bool _isCorrect = false;
+  late List<int> _optionOrder;
 
   // Code-fill state
   List<String?> _filledTokens = [];
@@ -43,7 +47,11 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
   @override
   void initState() {
     super.initState();
+    _optionOrder = List.generate(lesson.options.length, (i) => i)..shuffle();
     _initCodeState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(userProvider.notifier).refreshLives();
+    });
   }
 
   void _initCodeState() {
@@ -64,6 +72,9 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
       _answered = true;
       _isCorrect = correct;
     });
+    if (!correct) {
+      ref.read(userProvider.notifier).loseLife();
+    }
   }
 
   void _selectBlank(int index) => setState(() => _selectedBlank = index);
@@ -144,18 +155,23 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
             : '$output${output.isNotEmpty ? '\n\n' : ''}Resultado incorreto!'
                 '${l.hint != null ? '\n  ${l.hint}' : ''}';
       });
+      if (!correct) {
+        ref.read(userProvider.notifier).loseLife();
+      }
     } on SimulatorError catch (e) {
       setState(() {
         _hasRun = true;
         _runCorrect = false;
         _terminalOutput = e.message;
       });
+      ref.read(userProvider.notifier).loseLife();
     } catch (e) {
       setState(() {
         _hasRun = true;
         _runCorrect = false;
         _terminalOutput = 'RuntimeError: $e';
       });
+      ref.read(userProvider.notifier).loseLife();
     }
   }
 
@@ -201,6 +217,13 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userProvider);
+    final outOfLives = user != null && !user.canPlay;
+
+    if (outOfLives) {
+      return _NoLivesScreen(user: user);
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -209,6 +232,8 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
             _ProgressHeader(
               levelIndex: widget.levelIndex,
               lessonIndex: widget.lessonIndex,
+              lives: user?.lives ?? UserProfile.maxLives,
+              hasUnlimitedLives: user?.hasUnlimitedLives ?? false,
             ),
             Expanded(
               child: lesson.type == LessonType.codeChallenge
@@ -219,6 +244,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
                           ? _ExplanationContent(lesson: lesson)
                           : _QuizContent(
                               lesson: lesson,
+                              optionOrder: _optionOrder,
                               selectedOption: _selectedOption,
                               answered: _answered,
                               isCorrect: _isCorrect,
@@ -707,8 +733,15 @@ class _TerminalPanel extends StatelessWidget {
 class _ProgressHeader extends StatelessWidget {
   final int levelIndex;
   final int lessonIndex;
+  final int lives;
+  final bool hasUnlimitedLives;
 
-  const _ProgressHeader({required this.levelIndex, required this.lessonIndex});
+  const _ProgressHeader({
+    required this.levelIndex,
+    required this.lessonIndex,
+    required this.lives,
+    required this.hasUnlimitedLives,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -783,6 +816,8 @@ class _ProgressHeader extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          LivesBadge(lives: lives, unlimited: hasUnlimitedLives),
         ],
       ),
     );
@@ -837,6 +872,7 @@ class _ExplanationContent extends StatelessWidget {
 // ── Quiz Content ───────────────────────────────────────────────
 class _QuizContent extends StatelessWidget {
   final Lesson lesson;
+  final List<int> optionOrder;
   final int? selectedOption;
   final bool answered;
   final bool isCorrect;
@@ -844,6 +880,7 @@ class _QuizContent extends StatelessWidget {
 
   const _QuizContent({
     required this.lesson,
+    required this.optionOrder,
     required this.selectedOption,
     required this.answered,
     required this.isCorrect,
@@ -874,9 +911,10 @@ class _QuizContent extends StatelessWidget {
         Text(lesson.question ?? '', style: AppTextStyles.headlineSmall)
             .animate(delay: 180.ms).slideY(begin: 0.2).fade(),
         const SizedBox(height: 18),
-        ...lesson.options.asMap().entries.map((e) {
-          final i = e.key;
-          final opt = e.value;
+        ...optionOrder.asMap().entries.map((e) {
+          final displayIndex = e.key;
+          final i = e.value;
+          final opt = lesson.options[i];
           Color border = AppColors.cardBorder;
           Color bg = AppColors.surface;
 
@@ -939,7 +977,7 @@ class _QuizContent extends StatelessWidget {
                 ],
               ),
             ),
-          ).animate(delay: (i * 70).ms).slideX(begin: 0.2).fade();
+          ).animate(delay: (displayIndex * 70).ms).slideX(begin: 0.2).fade();
         }),
         if (answered && !isCorrect && lesson.hint != null) ...[
           const SizedBox(height: 14),
@@ -1082,6 +1120,72 @@ class _BottomAction extends StatelessWidget {
                 : BuggoButtonVariant.danger,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── No Lives Screen ─────────────────────────────────────────────
+class _NoLivesScreen extends StatelessWidget {
+  final UserProfile user;
+
+  const _NoLivesScreen({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.close_rounded,
+                          color: AppColors.textSecondary, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              const MascotWidget(
+                mood: MascotMood.sad,
+                speechBubble: 'Você ficou sem vidas!',
+                size: 120,
+              ).animate().scale(begin: const Offset(0.85, 0.85)).fade(),
+              const SizedBox(height: 20),
+              Text(
+                'Sem vidas por agora',
+                style: AppTextStyles.headlineLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Espere a recuperação automática ou use uma das opções abaixo para continuar agora.',
+                style: AppTextStyles.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              LivesRecoveryCard(user: user),
+              const Spacer(),
+              BuggoButton(
+                label: 'Voltar para o início',
+                onPressed: () => context.go(AppRouter.home),
+                width: double.infinity,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -75,9 +75,14 @@ Thumbs.db
 # ── Env / Secrets ────────────────────────────────────────────────────────────
 .env
 .env.*
+!.env.example
 secrets.dart
 google-services.json
 GoogleService-Info.plist
 
 # ── Logs ────────────────────────────────────────────────────────────────────
 *.log
+
+# ── Ferramentas de IA / editor ───────────────────────────────────────────────
+.claude/
+

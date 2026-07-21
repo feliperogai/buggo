@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../data/content/achievements_catalog.dart';
 import '../../../../data/content/python_curriculum.dart';
-import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
 
 class AchievementsScreen extends ConsumerWidget {
@@ -28,8 +28,12 @@ class AchievementsScreen extends ConsumerWidget {
     final completedLessons = user.completedLessons.length;
     final completedPercent =
         totalLessons == 0 ? 0 : (completedLessons / totalLessons * 100).round();
-    final achievements = _buildAchievements(user, completedLessons);
-    final unlocked = achievements.where((item) => item.isUnlocked).length;
+    const achievements = achievementCatalog;
+    final unlockedFlags = {
+      for (final a in achievements)
+        a.id: a.isUnlocked(user, completedLessons, totalLessons),
+    };
+    final unlocked = unlockedFlags.values.where((v) => v).length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -49,6 +53,23 @@ class AchievementsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      GestureDetector(
+                        onTap: () => context.pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.35),
+                                width: 1.5),
+                          ),
+                          child: const Icon(Icons.arrow_back_ios_new,
+                              color: Colors.white, size: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
                       Row(
                         children: [
                           Container(
@@ -74,7 +95,7 @@ class AchievementsScreen extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Troféus',
+                                  'Conquistas',
                                   style: AppTextStyles.headlineLarge
                                       .copyWith(color: Colors.white),
                                 ),
@@ -127,7 +148,11 @@ class AchievementsScreen extends ConsumerWidget {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final achievement = achievements[index];
-                  return _AchievementCard(achievement: achievement)
+                  final isUnlocked = unlockedFlags[achievement.id] ?? false;
+                  return _AchievementCard(
+                    achievement: achievement,
+                    isUnlocked: isUnlocked,
+                  )
                       .animate(delay: (index * 70).ms)
                       .slideY(begin: 0.16)
                       .fade();
@@ -140,56 +165,6 @@ class AchievementsScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-List<_AchievementItem> _buildAchievements(
-  UserProfile user,
-  int completedLessons,
-) {
-  return [
-    _AchievementItem(
-      title: 'Primeiro passo',
-      description: 'Complete uma lição',
-      icon: Icons.flag_rounded,
-      color: AppColors.success,
-      isUnlocked: completedLessons >= 1,
-    ),
-    _AchievementItem(
-      title: 'Ritmo forte',
-      description: 'Complete 5 lições',
-      icon: Icons.local_fire_department_rounded,
-      color: AppColors.streakColor,
-      isUnlocked: completedLessons >= 5,
-    ),
-    _AchievementItem(
-      title: 'Maratona',
-      description: 'Complete 10 lições',
-      icon: Icons.directions_run_rounded,
-      color: AppColors.levelBlue,
-      isUnlocked: completedLessons >= 10,
-    ),
-    _AchievementItem(
-      title: 'Sequência',
-      description: 'Estude 3 dias seguidos',
-      icon: Icons.bolt_rounded,
-      color: AppColors.xpColor,
-      isUnlocked: user.streak >= 3,
-    ),
-    _AchievementItem(
-      title: 'Colecionador',
-      description: 'Guarde 50 moedas',
-      icon: Icons.monetization_on_rounded,
-      color: AppColors.coinColor,
-      isUnlocked: user.coins >= 50,
-    ),
-    _AchievementItem(
-      title: 'Nível 2',
-      description: 'Suba seu nível',
-      icon: Icons.trending_up_rounded,
-      color: AppColors.levelPink,
-      isUnlocked: user.currentLevel >= 2,
-    ),
-  ];
 }
 
 class _HeaderMetric extends StatelessWidget {
@@ -242,13 +217,13 @@ class _HeaderMetric extends StatelessWidget {
 }
 
 class _AchievementCard extends StatelessWidget {
-  final _AchievementItem achievement;
+  final Achievement achievement;
+  final bool isUnlocked;
 
-  const _AchievementCard({required this.achievement});
+  const _AchievementCard({required this.achievement, required this.isUnlocked});
 
   @override
   Widget build(BuildContext context) {
-    final isUnlocked = achievement.isUnlocked;
     final color = achievement.color;
 
     return Container(
@@ -307,20 +282,4 @@ class _AchievementCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _AchievementItem {
-  final String title;
-  final String description;
-  final IconData icon;
-  final Color color;
-  final bool isUnlocked;
-
-  const _AchievementItem({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.color,
-    required this.isUnlocked,
-  });
 }

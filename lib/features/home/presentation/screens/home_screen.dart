@@ -8,6 +8,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../data/content/python_curriculum.dart';
 import '../../../../shared/constants/learning_languages.dart';
 import '../../../../shared/models/lesson.dart';
+import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/pixel_avatars.dart';
 
@@ -37,7 +38,19 @@ class HomeScreen extends ConsumerWidget {
         slivers: [
           // Header card com gradiente
           SliverToBoxAdapter(
-            child: _HeaderCard(user: user),
+            child: _HeaderCard(
+              user: user,
+              currentLanguage: currentLanguage,
+              onLanguageTap: () => _showLanguagePicker(
+                context,
+                ref,
+                selectedLanguage,
+                hasCompletedFoundations: hasCompletedFoundations,
+              ),
+              onStreakTap: () => context.push(AppRouter.streak),
+              onCoinsTap: () => context.push(AppRouter.coins),
+              onLivesTap: () => context.push(AppRouter.hearts),
+            ),
           ),
 
           SliverToBoxAdapter(
@@ -613,8 +626,21 @@ class _LanguageOptionTile extends StatelessWidget {
 }
 
 class _HeaderCard extends StatelessWidget {
-  final dynamic user;
-  const _HeaderCard({required this.user});
+  final UserProfile user;
+  final LearningLanguageOption currentLanguage;
+  final VoidCallback onLanguageTap;
+  final VoidCallback onStreakTap;
+  final VoidCallback onCoinsTap;
+  final VoidCallback onLivesTap;
+
+  const _HeaderCard({
+    required this.user,
+    required this.currentLanguage,
+    required this.onLanguageTap,
+    required this.onStreakTap,
+    required this.onCoinsTap,
+    required this.onLivesTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -630,7 +656,44 @@ class _HeaderCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row: greeting + avatar
+              // Top row: language, streak, coins, lives
+              Row(
+                children: [
+                  _TopIconChip(
+                    icon: currentLanguage.icon,
+                    value: currentLanguage.label,
+                    onTap: onLanguageTap,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TopIconChip(
+                      icon: Icons.local_fire_department_rounded,
+                      value: '${user.streak}',
+                      onTap: onStreakTap,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TopIconChip(
+                      icon: Icons.monetization_on_rounded,
+                      value: '${user.coins}',
+                      onTap: onCoinsTap,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TopIconChip(
+                      icon: Icons.favorite_rounded,
+                      value: user.hasUnlimitedLives ? '∞' : '${user.lives}',
+                      onTap: onLivesTap,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Greeting + avatar
               Row(
                 children: [
                   Expanded(
@@ -678,31 +741,6 @@ class _HeaderCard extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Stats chips
-              Row(
-                children: [
-                  _StatPill(
-                      iconData: Icons.local_fire_department_rounded,
-                      value: '${user.streak}',
-                      label: 'dias',
-                      color: Colors.white),
-                  const SizedBox(width: 8),
-                  _StatPill(
-                      iconData: Icons.monetization_on_rounded,
-                      value: '${user.coins}',
-                      label: 'moedas',
-                      color: Colors.white),
-                  const SizedBox(width: 8),
-                  _StatPill(
-                      iconData: Icons.bolt_rounded,
-                      value: '${user.xp}',
-                      label: 'XP',
-                      color: Colors.white),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
               // XP bar adaptada para tema escuro
               _WhiteXpBar(
                   xp: user.xp,
@@ -716,39 +754,47 @@ class _HeaderCard extends StatelessWidget {
   }
 }
 
-class _StatPill extends StatelessWidget {
-  final IconData iconData;
+// ── Top Icon Chip (language / streak / coins / lives) ──────────
+class _TopIconChip extends StatelessWidget {
+  final IconData icon;
   final String value;
-  final String label;
-  final Color color;
+  final VoidCallback onTap;
 
-  const _StatPill(
-      {required this.iconData,
-      required this.value,
-      required this.label,
-      required this.color});
+  const _TopIconChip({
+    required this.icon,
+    required this.value,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(iconData, color: Colors.white, size: 15),
-          const SizedBox(width: 5),
-          Text(
-            '$value $label',
-            style: AppTextStyles.bodySmall
-                .copyWith(color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: Colors.white.withValues(alpha: 0.25), width: 1),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 16),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                value,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

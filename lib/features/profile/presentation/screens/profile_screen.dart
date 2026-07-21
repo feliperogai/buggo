@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../data/content/achievements_catalog.dart';
 import '../../../../data/content/python_curriculum.dart';
+import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/pixel_avatars.dart';
 import '../../../../shared/widgets/xp_bar.dart';
@@ -231,10 +233,10 @@ class ProfileScreen extends ConsumerWidget {
 
                   const SizedBox(height: 20),
 
-                  _AchievementsSection(user: user)
-                      .animate(delay: 500.ms)
-                      .slideY(begin: 0.3)
-                      .fade(),
+                  _AchievementsSection(
+                    user: user,
+                    onSeeAll: () => context.push(AppRouter.achievements),
+                  ).animate(delay: 500.ms).slideY(begin: 0.3).fade(),
 
                   const SizedBox(height: 24),
                 ],
@@ -373,44 +375,42 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
-class _Achievement {
-  final String id;
-  final String label;
-  final IconData icon;
-  const _Achievement(this.id, this.label, this.icon);
-}
-
 class _AchievementsSection extends StatelessWidget {
-  final dynamic user;
-  const _AchievementsSection({required this.user});
+  final UserProfile user;
+  final VoidCallback onSeeAll;
+  const _AchievementsSection({required this.user, required this.onSeeAll});
 
-  static const _achievements = [
-    _Achievement('first_lesson', 'Primeira\nLição', Icons.star_rounded),
-    _Achievement('five_lessons', '5\nLições', Icons.military_tech_rounded),
-    _Achievement(
-        'streak_3', '3 Dias\nSeguidos', Icons.local_fire_department_rounded),
-    _Achievement('python_start', 'Pythonista', Icons.terminal_rounded),
-  ];
-
-  bool _unlocked(_Achievement a) {
-    switch (a.id) {
-      case 'first_lesson':
-        return (user.completedLessons as List).isNotEmpty;
-      case 'five_lessons':
-        return (user.completedLessons as List).length >= 5;
-      case 'streak_3':
-        return (user.streak as int) >= 3;
-      default:
-        return false;
-    }
-  }
+  static const _previewCount = 4;
 
   @override
   Widget build(BuildContext context) {
+    final totalLessons =
+        pythonCurriculum.expand((l) => l.lessons).length;
+    final completedLessons = user.completedLessons.length;
+    final preview = achievementCatalog.take(_previewCount).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Conquistas', style: AppTextStyles.headlineSmall),
+        Row(
+          children: [
+            Text('Conquistas', style: AppTextStyles.headlineSmall),
+            const Spacer(),
+            GestureDetector(
+              onTap: onSeeAll,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Ver todas',
+                      style: AppTextStyles.labelSmall
+                          .copyWith(color: AppColors.primary)),
+                  Icon(Icons.chevron_right_rounded,
+                      color: AppColors.primary, size: 18),
+                ],
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
         GridView.builder(
           shrinkWrap: true,
@@ -421,10 +421,10 @@ class _AchievementsSection extends StatelessWidget {
             crossAxisSpacing: 12,
             childAspectRatio: 0.8,
           ),
-          itemCount: _achievements.length,
+          itemCount: preview.length,
           itemBuilder: (_, i) {
-            final a = _achievements[i];
-            final on = _unlocked(a);
+            final a = preview[i];
+            final on = a.isUnlocked(user, completedLessons, totalLessons);
             return Column(
               children: [
                 AnimatedContainer(
@@ -453,12 +453,14 @@ class _AchievementsSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  a.label,
+                  a.title,
                   style: AppTextStyles.bodySmall.copyWith(
                     fontSize: 10,
                     color: on ? AppColors.textPrimary : AppColors.textMuted,
                   ),
                   textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             );
