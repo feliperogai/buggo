@@ -1,12 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/providers/user_provider.dart';
-import '../../../../shared/widgets/mascot_widget.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -15,15 +16,33 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _lottieController;
+  bool _navigated = false;
+  Timer? _fallbackTimer;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 2800), _navigate);
+    _lottieController = AnimationController(vsync: this)
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) _navigate();
+      });
+    // Safety net in case the animation asset fails to load for any reason.
+    _fallbackTimer = Timer(const Duration(seconds: 6), _navigate);
+  }
+
+  @override
+  void dispose() {
+    _fallbackTimer?.cancel();
+    _lottieController.dispose();
+    super.dispose();
   }
 
   void _navigate() {
-    if (!mounted) return;
+    if (!mounted || _navigated) return;
+    _navigated = true;
     final user = ref.read(userProvider);
     context.go(user != null ? AppRouter.home : AppRouter.onboarding);
   }
@@ -76,16 +95,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const MascotWidget(mood: MascotMood.happy, size: 140)
-                    .animate()
-                    .scale(
-                      begin: const Offset(0.3, 0.3),
-                      duration: 800.ms,
-                      curve: Curves.elasticOut,
-                    )
-                    .fade(duration: 400.ms),
+                SizedBox(
+                  width: 280,
+                  height: 280,
+                  child: Lottie.asset(
+                    'assets/animations/splash_loading.json',
+                    controller: _lottieController,
+                    repeat: false,
+                    onLoaded: (composition) {
+                      _lottieController.duration = composition.duration;
+                      _lottieController.forward();
+                    },
+                  ),
+                ).animate().fade(duration: 300.ms),
 
-                const SizedBox(height: 36),
+                const SizedBox(height: 12),
 
                 // Logo BUGGO com gradiente
                 ShaderMask(
@@ -99,7 +123,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     ),
                   ),
                 )
-                    .animate(delay: 350.ms)
+                    .animate(delay: 200.ms)
                     .slideY(begin: 0.4, duration: 500.ms, curve: Curves.easeOut)
                     .fade(),
 
@@ -108,67 +132,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 Text(
                   'Aprenda a programar brincando',
                   style: AppTextStyles.bodyMedium,
-                ).animate(delay: 550.ms).fade(duration: 400.ms),
-
-                const SizedBox(height: 60),
-
-                _SmoothDotLoader().animate(delay: 900.ms).fade(),
+                ).animate(delay: 400.ms).fade(duration: 400.ms),
               ],
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SmoothDotLoader extends StatefulWidget {
-  @override
-  State<_SmoothDotLoader> createState() => _SmoothDotLoaderState();
-}
-
-class _SmoothDotLoaderState extends State<_SmoothDotLoader>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900))
-      ..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) {
-        final step = (_ctrl.value * 3).floor();
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(3, (i) {
-            final active = i == step;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: active ? 24 : 10,
-              height: 10,
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              decoration: BoxDecoration(
-                gradient: active ? AppColors.primaryGradient : null,
-                color: active ? null : AppColors.cardBorder,
-                borderRadius: BorderRadius.circular(100),
-              ),
-            );
-          }),
-        );
-      },
     );
   }
 }
