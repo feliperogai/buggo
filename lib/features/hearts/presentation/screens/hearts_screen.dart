@@ -152,7 +152,7 @@ class _HeartsScreenState extends ConsumerState<HeartsScreen> {
                 highlighted: true,
                 onTap: unlimited
                     ? null
-                    : () => context.push(AppRouter.market),
+                    : () => context.go(AppRouter.market),
               ).animate(delay: 80.ms).slideY(begin: 0.1).fade(),
               const SizedBox(height: 12),
 
