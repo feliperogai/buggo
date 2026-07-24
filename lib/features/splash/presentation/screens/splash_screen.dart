@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
+import '../../../../core/bootstrap.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
@@ -19,12 +20,16 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _lottieController;
+  late final Future<void> _bootstrapFuture;
   bool _navigated = false;
   Timer? _fallbackTimer;
 
   @override
   void initState() {
     super.initState();
+    // Kicked off now (after the first frame) so it runs alongside the
+    // splash animation instead of delaying it.
+    _bootstrapFuture = bootstrapApp();
     _lottieController = AnimationController(vsync: this)
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) _navigate();
@@ -40,9 +45,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     super.dispose();
   }
 
-  void _navigate() {
+  Future<void> _navigate() async {
     if (!mounted || _navigated) return;
     _navigated = true;
+    await _bootstrapFuture;
+    if (!mounted) return;
     final user = ref.read(userProvider);
     context.go(user != null ? AppRouter.home : AppRouter.onboarding);
   }

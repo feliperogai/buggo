@@ -14,11 +14,13 @@ import '../../features/streak/presentation/screens/streak_screen.dart';
 import '../../features/wallet/presentation/screens/coins_screen.dart';
 import '../../features/hearts/presentation/screens/hearts_screen.dart';
 import '../../features/ranking/presentation/screens/ranking_screen.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../shared/widgets/main_navigation_shell.dart';
 
 class AppRouter {
   static const String splash = '/';
   static const String onboarding = '/onboarding';
+  static const String login = '/login';
   static const String home = '/home';
   static const String levelMap = '/level-map';
   static const String challenge = '/challenge';
@@ -43,6 +45,13 @@ class AppRouter {
         path: onboarding,
         pageBuilder: (context, state) =>
             _slidePage(state, const OnboardingScreen()),
+      ),
+      GoRoute(
+        path: login,
+        pageBuilder: (context, state) {
+          final mode = state.extra as AuthMode? ?? AuthMode.login;
+          return _slidePage(state, LoginScreen(initialMode: mode));
+        },
       ),
       GoRoute(
         path: streak,

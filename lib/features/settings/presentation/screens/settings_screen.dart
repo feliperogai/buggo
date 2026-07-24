@@ -85,6 +85,17 @@ class SettingsScreen extends ConsumerWidget {
                   value: '${user?.dailyGoalMinutes ?? 15} min',
                   color: AppColors.levelBlue,
                 ),
+                if (user?.email != null) ...[
+                  const SizedBox(height: 10),
+                  _SettingsTile(
+                    icon: Icons.email_rounded,
+                    label: 'E-mail',
+                    value: user!.email!,
+                    color: AppColors.accent,
+                  ),
+                  const SizedBox(height: 10),
+                  _LogoutButton(ref: ref),
+                ],
                 const SizedBox(height: 24),
                 _SectionLabel('Sobre'),
                 _SettingsTile(
@@ -173,6 +184,48 @@ class _SettingsTile extends StatelessWidget {
               style: AppTextStyles.bodyMedium
                   .copyWith(color: AppColors.textSecondary)),
         ],
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  final WidgetRef ref;
+
+  const _LogoutButton({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        await ref.read(userProvider.notifier).logout();
+        if (context.mounted) context.go(AppRouter.onboarding);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.cardBorder, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.textMuted.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.logout_rounded,
+                  color: AppColors.textSecondary, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text('Sair da conta', style: AppTextStyles.bodyLarge),
+            ),
+          ],
+        ),
       ),
     );
   }

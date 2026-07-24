@@ -86,3 +86,8 @@ GoogleService-Info.plist
 # ── Ferramentas de IA / editor ───────────────────────────────────────────────
 .claude/
 
+# ── Backend (server/) ───────────────────────────────────────────────────────
+server/node_modules/
+server/.vercel/
+server/dist/
+
