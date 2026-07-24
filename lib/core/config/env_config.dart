@@ -13,8 +13,12 @@ class EnvConfig {
   }
 
   /// Base URL of the Vercel API in front of Neon Postgres, e.g.
-  /// `https://buggo-api.vercel.app`. No trailing slash.
-  static String get apiBaseUrl => dotenv.env['API_BASE_URL'] ?? '';
+  /// `https://buggo-api.vercel.app`. A trailing slash (if present in
+  /// `.env`) is stripped so it can be safely concatenated with `/api/...`.
+  static String get apiBaseUrl {
+    final raw = dotenv.env['API_BASE_URL'] ?? '';
+    return raw.endsWith('/') ? raw.substring(0, raw.length - 1) : raw;
+  }
 
   static bool get isApiConfigured => apiBaseUrl.isNotEmpty;
 }
