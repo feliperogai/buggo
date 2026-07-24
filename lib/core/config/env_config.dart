@@ -1,9 +1,10 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Reads Supabase credentials from `.env` (see `.env.example`).
+/// Reads app config from `.env` (see `.env.example`).
 ///
-/// The app works without these set — features backed by Supabase (like the
-/// ranking) fall back to local/mock data until the keys are filled in.
+/// The app works without `API_BASE_URL` set — features backed by it (login,
+/// profile sync, the real ranking) fall back to guest-only / mock data until
+/// the key is filled in.
 class EnvConfig {
   EnvConfig._();
 
@@ -11,9 +12,9 @@ class EnvConfig {
     await dotenv.load(fileName: '.env');
   }
 
-  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
-  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  /// Base URL of the Vercel API in front of Neon Postgres, e.g.
+  /// `https://buggo-api.vercel.app`. No trailing slash.
+  static String get apiBaseUrl => dotenv.env['API_BASE_URL'] ?? '';
 
-  static bool get isSupabaseConfigured =>
-      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+  static bool get isApiConfigured => apiBaseUrl.isNotEmpty;
 }

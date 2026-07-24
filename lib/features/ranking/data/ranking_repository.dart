@@ -1,70 +1,49 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../../core/config/env_config.dart';
 import 'ranking_entry.dart';
 
-/// Backs the Ranking screen with Supabase data once configured, falling back
-/// to local mock entries otherwise (missing `.env` keys, table not created
-/// yet, network error, etc).
-///
-/// Expected Supabase table (create this once you're ready to go live):
-///
-/// ```sql
-/// create table profiles (
-///   id uuid primary key default gen_random_uuid(),
-///   name text not null,
-///   avatar_index int4 not null default 0,
-///   xp int4 not null default 0,
-///   streak int4 not null default 0,
-///   updated_at timestamptz not null default now()
-/// );
-/// ```
+/// Backs the Ranking screen with real accounts from the Vercel API (see
+/// `server/api/leaderboard.ts`) once `API_BASE_URL` is configured, falling
+/// back to local mock entries otherwise (missing `.env` key, network error,
+/// backend not deployed yet, etc).
 class RankingRepository {
-  static const _table = 'profiles';
+  bool get isLive => EnvConfig.isApiConfigured;
 
-  bool get isLive => EnvConfig.isSupabaseConfigured;
+  Future<List<RankingEntry>> fetchTopByXp({int limit = 20}) =>
+      _fetch(by: 'xp', limit: limit, fallback: _mockXpRanking);
 
-  Future<List<RankingEntry>> fetchTopByXp({int limit = 20}) async {
-    if (!isLive) return _mockXpRanking;
+  Future<List<RankingEntry>> fetchTopByStreak({int limit = 20}) =>
+      _fetch(by: 'streak', limit: limit, fallback: _mockStreakRanking);
+
+  Future<List<RankingEntry>> _fetch({
+    required String by,
+    required int limit,
+    required List<RankingEntry> fallback,
+  }) async {
+    if (!isLive) return fallback;
     try {
-      final rows = await Supabase.instance.client
-          .from(_table)
-          .select('id, name, avatar_index, xp, streak')
-          .order('xp', ascending: false)
-          .limit(limit);
-      return _parseRows(rows);
+      final uri = Uri.parse('${EnvConfig.apiBaseUrl}/api/leaderboard?by=$by&limit=$limit');
+      final response = await http.get(uri);
+      if (response.statusCode != 200) return fallback;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final entries = body['entries'] as List<dynamic>;
+      return entries.map((e) {
+        final map = e as Map<String, dynamic>;
+        return RankingEntry(
+          id: map['id'] as String,
+          name: map['name'] as String? ?? '—',
+          avatarIndex: map['avatarIndex'] as int? ?? 0,
+          xp: map['xp'] as int? ?? 0,
+          streak: map['streak'] as int? ?? 0,
+        );
+      }).toList();
     } catch (_) {
-      return _mockXpRanking;
+      return fallback;
     }
   }
 
-  Future<List<RankingEntry>> fetchTopByStreak({int limit = 20}) async {
-    if (!isLive) return _mockStreakRanking;
-    try {
-      final rows = await Supabase.instance.client
-          .from(_table)
-          .select('id, name, avatar_index, xp, streak')
-          .order('streak', ascending: false)
-          .limit(limit);
-      return _parseRows(rows);
-    } catch (_) {
-      return _mockStreakRanking;
-    }
-  }
-
-  List<RankingEntry> _parseRows(List<dynamic> rows) {
-    return rows.map((row) {
-      final map = row as Map<String, dynamic>;
-      return RankingEntry(
-        id: map['id'] as String,
-        name: map['name'] as String? ?? '—',
-        avatarIndex: map['avatar_index'] as int? ?? 0,
-        xp: map['xp'] as int? ?? 0,
-        streak: map['streak'] as int? ?? 0,
-      );
-    }).toList();
-  }
-
-  // ── Mock data (shown until Supabase is configured) ──────────────────────
+  // ── Mock data (shown until the API is configured) ───────────────────────
   static const _mockXpRanking = [
     RankingEntry(id: 'mock-1', name: 'Marina', avatarIndex: 2, xp: 2340, streak: 41),
     RankingEntry(id: 'mock-2', name: 'Lucas', avatarIndex: 0, xp: 2110, streak: 18),

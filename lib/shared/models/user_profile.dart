@@ -2,6 +2,10 @@ class UserProfile {
   static const int maxLives = 5;
   static const int maxStreakFreezes = 2;
 
+  /// Server account id (Neon `users.id`), or null for a guest profile that
+  /// only exists locally.
+  final String? id;
+  final String? email;
   final String name;
   final String language;
   final String level;
@@ -20,6 +24,8 @@ class UserProfile {
   final int streakFreezes;
 
   const UserProfile({
+    this.id,
+    this.email,
     required this.name,
     required this.language,
     required this.level,
@@ -39,6 +45,8 @@ class UserProfile {
   });
 
   UserProfile copyWith({
+    String? id,
+    String? email,
     String? name,
     String? language,
     String? level,
@@ -59,6 +67,8 @@ class UserProfile {
     int? streakFreezes,
   }) {
     return UserProfile(
+      id: id ?? this.id,
+      email: email ?? this.email,
       name: name ?? this.name,
       language: language ?? this.language,
       level: level ?? this.level,
@@ -82,6 +92,8 @@ class UserProfile {
   }
 
   Map<String, dynamic> toMap() => {
+        'id': id,
+        'email': email,
         'name': name,
         'language': language,
         'level': level,
@@ -101,6 +113,8 @@ class UserProfile {
       };
 
   factory UserProfile.fromMap(Map<dynamic, dynamic> map) => UserProfile(
+        id: map['id'] as String?,
+        email: map['email'] as String?,
         name: map['name'] as String? ?? '',
         language: map['language'] as String? ?? 'logic',
         level: map['level'] as String? ?? 'adult',
@@ -126,6 +140,8 @@ class UserProfile {
             : null,
         streakFreezes: map['streakFreezes'] as int? ?? 0,
       );
+
+  bool get isGuest => id == null;
 
   int get currentLevel => (xp / 100).floor() + 1;
   int get xpToNextLevel => 100 - (xp % 100);

@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_profile.dart';
 import '../../core/storage/hive_storage.dart';
+import '../../features/auth/data/auth_repository.dart';
 
 class UserNotifier extends Notifier<UserProfile?> {
   static const int lifeCoinCost = 50;
   static const Duration monthlyPlanDuration = Duration(days: 30);
   static const int streakFreezeCoinCost = 200;
+
+  final _authRepository = AuthRepository();
 
   @override
   UserProfile? build() {
@@ -28,6 +32,18 @@ class UserNotifier extends Notifier<UserProfile?> {
   void saveProfile(UserProfile profile) {
     HiveStorage.user.put('profile', profile.toMap());
     state = profile;
+    if (profile.id != null) {
+      unawaited(_authRepository.pushProfile(profile));
+    }
+  }
+
+  /// Clears the local profile and server session (if any), leaving the app
+  /// ready to show onboarding again. Does not touch the progress box — see
+  /// the distinct "Resetar progresso" action for a full local wipe.
+  Future<void> logout() async {
+    await _authRepository.logout();
+    await HiveStorage.user.clear();
+    state = null;
   }
 
   /// Restores lives to full once 24h have passed since the first loss, or

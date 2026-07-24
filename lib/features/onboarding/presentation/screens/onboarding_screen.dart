@@ -10,6 +10,7 @@ import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/buggo_button.dart';
 import '../../../../shared/widgets/mascot_widget.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -37,7 +38,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _next() {
-    if (_page == 0 && _name.trim().isEmpty) {
+    if (_page == 1 && _name.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.error,
@@ -54,12 +55,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       );
       return;
     }
-    if (_page < 3) {
+    if (_page < 4) {
       _pageCtrl.nextPage(
           duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
     } else {
       _finish();
     }
+  }
+
+  void _continueAsGuest() {
+    _pageCtrl.nextPage(
+        duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+  }
+
+  Future<void> _goToLogin(AuthMode mode) async {
+    await context.push(AppRouter.login, extra: mode);
   }
 
   void _finish() {
@@ -81,26 +91,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Progress bar moderna
+            // Progress bar moderna (a página de boas-vindas não conta, tem
+            // suas próprias ações). Sempre presente no Column (só o conteúdo
+            // muda) para não alterar o formato da lista de filhos — do
+            // contrário o Element do PageView é recriado do zero a cada
+            // troca de página, perdendo a posição de scroll.
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-              child: Row(
-                children: List.generate(4, (i) {
-                  final active = i <= _page;
-                  return Expanded(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      height: 5,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        gradient: active ? AppColors.primaryGradient : null,
-                        color: active ? null : AppColors.cardBorder,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
+              child: _page == 0
+                  ? const SizedBox(height: 5)
+                  : Row(
+                      children: List.generate(4, (i) {
+                        final active = i <= _page - 1;
+                        return Expanded(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            height: 5,
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            decoration: BoxDecoration(
+                              gradient:
+                                  active ? AppColors.primaryGradient : null,
+                              color: active ? null : AppColors.cardBorder,
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                          ),
+                        );
+                      }),
                     ),
-                  );
-                }),
-              ),
             ),
 
             Expanded(
@@ -109,6 +126,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _page = i),
                 children: [
+                  _WelcomeChoicePage(
+                    onGuest: _continueAsGuest,
+                    onLogin: () => _goToLogin(AuthMode.login),
+                    onSignup: () => _goToLogin(AuthMode.signup),
+                  ),
                   _NamePage(
                       ctrl: _nameCtrl,
                       onChanged: (v) => setState(() => _name = v)),
@@ -127,14 +149,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-              child: BuggoButton(
-                label: _page == 3 ? 'Começar!' : 'Próximo',
-                icon: _page == 3
-                    ? Icons.rocket_launch_rounded
-                    : Icons.arrow_forward_rounded,
-                onPressed: _next,
-                width: double.infinity,
-              ),
+              child: _page == 0
+                  ? const SizedBox.shrink()
+                  : BuggoButton(
+                      label: _page == 4 ? 'Começar!' : 'Próximo',
+                      icon: _page == 4
+                          ? Icons.rocket_launch_rounded
+                          : Icons.arrow_forward_rounded,
+                      onPressed: _next,
+                      width: double.infinity,
+                    ),
             ),
           ],
         ),
@@ -144,6 +168,75 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 }
 
 // ── Pages ──────────────────────────────────────────────────────
+class _WelcomeChoicePage extends StatelessWidget {
+  final VoidCallback onGuest;
+  final VoidCallback onLogin;
+  final VoidCallback onSignup;
+
+  const _WelcomeChoicePage({
+    required this.onGuest,
+    required this.onLogin,
+    required this.onSignup,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          const SizedBox(height: 32),
+          const MascotWidget(
+            mood: MascotMood.happy,
+            speechBubble: 'Bem-vindo ao Buggo!',
+          )
+              .animate()
+              .scale(
+                  begin: const Offset(0.8, 0.8),
+                  duration: 500.ms,
+                  curve: Curves.elasticOut)
+              .fade(),
+          const SizedBox(height: 32),
+          Text(
+            'Vamos começar!',
+            style: AppTextStyles.headlineLarge,
+            textAlign: TextAlign.center,
+          ).animate().slideY(begin: 0.3, duration: 400.ms).fade(),
+          const SizedBox(height: 8),
+          Text(
+            'Faça login para continuar de onde parou, ou use como convidado',
+            style: AppTextStyles.bodyMedium,
+            textAlign: TextAlign.center,
+          ).animate(delay: 100.ms).fade(),
+          const SizedBox(height: 32),
+          BuggoButton(
+            label: 'Continuar como convidado',
+            icon: Icons.person_outline_rounded,
+            onPressed: onGuest,
+            width: double.infinity,
+          ).animate(delay: 150.ms).slideY(begin: 0.3, duration: 400.ms).fade(),
+          const SizedBox(height: 12),
+          BuggoButton(
+            label: 'Já tenho conta',
+            icon: Icons.login_rounded,
+            variant: BuggoButtonVariant.secondary,
+            onPressed: onLogin,
+            width: double.infinity,
+          ).animate(delay: 220.ms).slideY(begin: 0.3, duration: 400.ms).fade(),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: onSignup,
+            child: Text(
+              'Criar conta nova',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary),
+            ),
+          ).animate(delay: 280.ms).fade(),
+        ],
+      ),
+    );
+  }
+}
+
 class _NamePage extends StatelessWidget {
   final TextEditingController ctrl;
   final ValueChanged<String> onChanged;
