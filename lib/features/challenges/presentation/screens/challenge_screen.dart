@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
@@ -72,8 +72,29 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
       _answered = true;
       _isCorrect = correct;
     });
-    if (!correct) {
-      ref.read(userProvider.notifier).loseLife();
+    if (correct) {
+      SoundService.instance.playWithHaptic(Sfx.correct, Haptic.light);
+    } else {
+      SoundService.instance.playWithHaptic(Sfx.wrong, Haptic.heavy);
+      _loseLife();
+    }
+  }
+
+  /// Toca um som depois de [delay]. Não checa `mounted` de propósito: esta
+  /// tela é substituída pela de sucesso logo em seguida, e o som precisa
+  /// tocar mesmo assim (o [SoundService] é global).
+  void _playDelayed(Sfx sfx, Duration delay) {
+    Future.delayed(delay, () => SoundService.instance.play(sfx));
+  }
+
+  /// Perde uma vida tocando o som só quando ela realmente foi descontada
+  /// (com Buggo+ ativo ou já zerado, `loseLife()` é no-op).
+  void _loseLife() {
+    final before = ref.read(userProvider)?.lives;
+    ref.read(userProvider.notifier).loseLife();
+    final after = ref.read(userProvider)?.lives;
+    if (before != null && after != null && after < before) {
+      SoundService.instance.play(Sfx.lifeLost);
     }
   }
 
@@ -123,7 +144,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
   }
 
   void _runCode() {
-    HapticFeedback.mediumImpact();
+    SoundService.instance.haptic(Haptic.medium);
     final l = lesson;
     if (l.codeTemplate == null || l.correctTokens == null) return;
 
@@ -155,8 +176,11 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
             : '$output${output.isNotEmpty ? '\n\n' : ''}Resultado incorreto!'
                 '${l.hint != null ? '\n  ${l.hint}' : ''}';
       });
-      if (!correct) {
-        ref.read(userProvider.notifier).loseLife();
+      if (correct) {
+        SoundService.instance.play(Sfx.correct);
+      } else {
+        SoundService.instance.play(Sfx.wrong);
+        _loseLife();
       }
     } on SimulatorError catch (e) {
       setState(() {
@@ -164,14 +188,16 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
         _runCorrect = false;
         _terminalOutput = e.message;
       });
-      ref.read(userProvider.notifier).loseLife();
+      SoundService.instance.play(Sfx.wrong);
+      _loseLife();
     } catch (e) {
       setState(() {
         _hasRun = true;
         _runCorrect = false;
         _terminalOutput = 'RuntimeError: $e';
       });
-      ref.read(userProvider.notifier).loseLife();
+      SoundService.instance.play(Sfx.wrong);
+      _loseLife();
     }
   }
 
@@ -188,11 +214,23 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
     final done = _isCorrect || lesson.type == LessonType.explanation || _runCorrect;
 
     if (done) {
+      final before = ref.read(userProvider);
       ref.read(userProvider.notifier).completeLesson(
             lesson.id,
             xp: lesson.xpReward,
             coins: lesson.coinReward,
           );
+      final after = ref.read(userProvider);
+      // Nível e sequência são derivados do perfil, então a única forma de
+      // saber que avançaram é comparar antes/depois. Tocam com atraso para
+      // não colidir com a fanfarra da tela de sucesso.
+      if (before != null && after != null) {
+        if (after.currentLevel > before.currentLevel) {
+          _playDelayed(Sfx.levelUp, const Duration(milliseconds: 1400));
+        } else if (after.streak > before.streak) {
+          _playDelayed(Sfx.streak, const Duration(milliseconds: 1400));
+        }
+      }
       final level = pythonCurriculum[widget.levelIndex];
       final isLast = widget.lessonIndex == level.lessons.length - 1;
       context.pushReplacement(AppRouter.success, extra: {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/audio/sound_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/router/app_router.dart';
@@ -49,6 +50,11 @@ class _LivesRecoveryCardState extends ConsumerState<LivesRecoveryCard> {
   void _buyLife() {
     final ok = ref.read(userProvider.notifier).buyLife();
     if (!mounted) return;
+    if (ok) {
+      SoundService.instance.playWithHaptic(Sfx.purchase, Haptic.light);
+    } else {
+      SoundService.instance.haptic(Haptic.heavy);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,

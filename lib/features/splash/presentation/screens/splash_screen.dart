@@ -8,6 +8,7 @@ import '../../../../core/bootstrap.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../shared/providers/settings_provider.dart';
 import '../../../../shared/providers/user_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -50,6 +51,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _navigated = true;
     await _bootstrapFuture;
     if (!mounted) return;
+    // Primeira leitura do provider: aplica no SoundService as preferências
+    // de som/vibração salvas, antes de qualquer tela poder tocar algo.
+    ref.read(settingsProvider);
     final user = ref.read(userProvider);
     context.go(user != null ? AppRouter.home : AppRouter.onboarding);
   }
