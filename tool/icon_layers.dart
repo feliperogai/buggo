@@ -15,7 +15,12 @@ import 'package:image/image.dart' as img;
 
 const _srcPath = 'assets/images/icon_buggo.png';
 const _foregroundPath = 'assets/images/icon_buggo_foreground.png';
-const _outputSize = 1024;
+
+/// Maior bitmap que o `flutter_launcher_icons` precisa gerar a partir do
+/// foreground: a adaptive icon em xxxhdpi (432x432). Gerar acima disso não
+/// adiciona nitidez — só faz o pipeline ampliar e depois reduzir de novo,
+/// que é justamente o que deixa o ícone borrado.
+const _largestAndroidForeground = 432;
 
 double _luminance(img.Pixel p) =>
     0.299 * p.r + 0.587 * p.g + 0.114 * p.b;
@@ -68,18 +73,30 @@ void main() {
     }
   }
 
-  final scaled = img.copyResize(
-    glyph,
-    width: _outputSize,
-    height: _outputSize,
-    interpolation: img.Interpolation.cubic,
-  );
+  // Mantém a resolução nativa da fonte. Só amplia se ela for pequena demais
+  // para o maior bitmap que o Android precisa — ampliar além disso não cria
+  // detalhe, apenas introduz um reamostramento extra (fonte -> ampliação ->
+  // redução por densidade) que borra o resultado.
+  final img.Image output;
+  if (glyph.width < _largestAndroidForeground) {
+    output = img.copyResize(
+      glyph,
+      width: _largestAndroidForeground,
+      height: _largestAndroidForeground,
+      interpolation: img.Interpolation.cubic,
+    );
+    print('AVISO: fonte tem só ${source.width}px; ampliada para '
+        '$_largestAndroidForeground px e o ícone pode sair borrado. '
+        'Use uma imagem de 512px ou mais.');
+  } else {
+    output = glyph;
+  }
 
-  File(_foregroundPath).writeAsBytesSync(img.encodePng(scaled));
+  File(_foregroundPath).writeAsBytesSync(img.encodePng(output));
 
   final glyphFraction =
       ((maxX - minX + 1) / source.width * 100).toStringAsFixed(0);
-  print('Background colour (set this as adaptive_icon_background): $bgHex');
-  print('Glyph bounding box fills ~$glyphFraction% of the source square');
-  print('Written: $_foregroundPath (${_outputSize}x$_outputSize)');
+  print('Cor de fundo (use como adaptive_icon_background): $bgHex');
+  print('Glifo ocupa ~$glyphFraction% do quadrado da fonte');
+  print('Gerado: $_foregroundPath (${output.width}x${output.height})');
 }
