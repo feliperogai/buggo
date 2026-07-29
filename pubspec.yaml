@@ -48,10 +48,15 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/images/icon_buggo.png"
   min_sdk_android: 21
-  adaptive_icon_background: "#642AE4"
-  adaptive_icon_foreground: "assets/images/icon_buggo_adaptive.png"
+  # O ícone é preenchido de ponta a ponta: o fundo da adaptive icon é a
+  # própria cor do ícone (#1E0145), e o foreground é só o glifo branco em
+  # transparência (gerado por `dart run tool/icon_layers.dart`). Assim não
+  # sobra anel de outra cor em volta do desenho.
+  adaptive_icon_background: "#1E0145"
+  adaptive_icon_foreground: "assets/images/icon_buggo_foreground.png"
+  adaptive_icon_foreground_inset: 20
   remove_alpha_ios: true
-  background_color_ios: "#642AE4"
+  background_color_ios: "#1E0145"
   windows:
     generate: true
     image_path: "assets/images/icon_buggo.png"

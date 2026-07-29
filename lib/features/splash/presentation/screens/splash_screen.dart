@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import '../../../../core/bootstrap.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/providers/user_provider.dart';
 
@@ -98,19 +99,49 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           ),
 
           Center(
-            child: SizedBox(
-              width: 280,
-              height: 280,
-              child: Lottie.asset(
-                'assets/animations/splash_loading.json',
-                controller: _lottieController,
-                repeat: false,
-                onLoaded: (composition) {
-                  _lottieController.duration = composition.duration;
-                  _lottieController.forward();
-                },
-              ),
-            ).animate().fade(duration: 300.ms),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 280,
+                  height: 280,
+                  child: Lottie.asset(
+                    'assets/animations/splash_loading.json',
+                    controller: _lottieController,
+                    repeat: false,
+                    onLoaded: (composition) {
+                      _lottieController.duration = composition.duration;
+                      _lottieController.forward();
+                    },
+                  ),
+                ).animate().fade(duration: 300.ms),
+
+                const SizedBox(height: 12),
+
+                // Logo BUGGO com gradiente
+                ShaderMask(
+                  shaderCallback: (bounds) =>
+                      AppColors.primaryGradient.createShader(bounds),
+                  child: Text(
+                    'Buggo',
+                    style: AppTextStyles.displayLarge.copyWith(
+                      color: Colors.white,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                )
+                    .animate(delay: 200.ms)
+                    .slideY(begin: 0.4, duration: 500.ms, curve: Curves.easeOut)
+                    .fade(),
+
+                const SizedBox(height: 8),
+
+                Text(
+                  'Aprenda a programar brincando',
+                  style: AppTextStyles.bodyMedium,
+                ).animate(delay: 400.ms).fade(duration: 400.ms),
+              ],
+            ),
           ),
         ],
       ),

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone "vazio" para a splash do Android 12+. A API de splash screen
+     sempre desenha algum ícone; apontando para este shape transparente ela
+     não mostra nada, e o usuário vê direto a animação da SplashScreen do
+     Flutter (que já traz o nome "Buggo"). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>

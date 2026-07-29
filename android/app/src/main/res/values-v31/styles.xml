@@ -5,10 +5,11 @@
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->
         <item name="android:windowBackground">@drawable/launch_background</item>
-        <!-- Android 12+ system splash screen: show only the plain icon
-             image, no adaptive-icon background circle -->
+        <!-- Splash do Android 12+: sem ícone nenhum, só o fundo branco (a
+             mesma cor da SplashScreen do Flutter), para que a primeira coisa
+             visível seja a animação Lottie com o nome "Buggo" -->
         <item name="android:windowSplashScreenBackground">@android:color/white</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_none</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
     </style>
 </resources>
