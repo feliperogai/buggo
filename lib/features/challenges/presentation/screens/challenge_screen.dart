@@ -75,8 +75,8 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
     if (correct) {
       SoundService.instance.playWithHaptic(Sfx.correct, Haptic.light);
     } else {
-      SoundService.instance.playWithHaptic(Sfx.wrong, Haptic.heavy);
-      _loseLife();
+      SoundService.instance.haptic(Haptic.heavy);
+      _playErrorSound();
     }
   }
 
@@ -87,15 +87,19 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
     Future.delayed(delay, () => SoundService.instance.play(sfx));
   }
 
-  /// Perde uma vida tocando o som só quando ela realmente foi descontada
-  /// (com Buggo+ ativo ou já zerado, `loseLife()` é no-op).
-  void _loseLife() {
+  /// Desconta uma vida e devolve se ela foi mesmo perdida — com Buggo+
+  /// ativo (ou já zerado) `loseLife()` é no-op.
+  bool _loseLife() {
     final before = ref.read(userProvider)?.lives;
     ref.read(userProvider.notifier).loseLife();
     final after = ref.read(userProvider)?.lives;
-    if (before != null && after != null && after < before) {
-      SoundService.instance.play(Sfx.lifeLost);
-    }
+    return before != null && after != null && after < before;
+  }
+
+  /// Um único som por erro. Quando a vida é descontada, o som de vida
+  /// perdida já comunica o erro; tocar os dois juntos embola o áudio.
+  void _playErrorSound() {
+    SoundService.instance.play(_loseLife() ? Sfx.lifeLost : Sfx.wrong);
   }
 
   void _selectBlank(int index) => setState(() => _selectedBlank = index);
@@ -179,8 +183,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
       if (correct) {
         SoundService.instance.play(Sfx.correct);
       } else {
-        SoundService.instance.play(Sfx.wrong);
-        _loseLife();
+        _playErrorSound();
       }
     } on SimulatorError catch (e) {
       setState(() {
@@ -188,16 +191,14 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
         _runCorrect = false;
         _terminalOutput = e.message;
       });
-      SoundService.instance.play(Sfx.wrong);
-      _loseLife();
+      _playErrorSound();
     } catch (e) {
       setState(() {
         _hasRun = true;
         _runCorrect = false;
         _terminalOutput = 'RuntimeError: $e';
       });
-      SoundService.instance.play(Sfx.wrong);
-      _loseLife();
+      _playErrorSound();
     }
   }
 
