@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
@@ -51,6 +52,11 @@ class MarketScreen extends ConsumerWidget {
     String successMsg,
     String failureMsg,
   ) {
+    if (ok) {
+      SoundService.instance.playWithHaptic(Sfx.purchase, Haptic.light);
+    } else {
+      SoundService.instance.haptic(Haptic.heavy);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,

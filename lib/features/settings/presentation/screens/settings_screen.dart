@@ -6,6 +6,7 @@ import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/storage/hive_storage.dart';
 import '../../../../shared/constants/learning_languages.dart';
+import '../../../../shared/providers/settings_provider.dart';
 import '../../../../shared/providers/user_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -14,6 +15,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProvider);
+    final settings = ref.watch(settingsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -96,6 +98,26 @@ class SettingsScreen extends ConsumerWidget {
                   const SizedBox(height: 10),
                   _LogoutButton(ref: ref),
                 ],
+                const SizedBox(height: 24),
+                _SectionLabel('Som e vibração'),
+                _SwitchTile(
+                  icon: Icons.volume_up_rounded,
+                  label: 'Efeitos sonoros',
+                  description: 'Sons de acerto, erro e recompensa',
+                  color: AppColors.accent,
+                  value: settings.soundEnabled,
+                  onChanged: (v) =>
+                      ref.read(settingsProvider.notifier).setSoundEnabled(v),
+                ),
+                _SwitchTile(
+                  icon: Icons.vibration_rounded,
+                  label: 'Vibração',
+                  description: 'Retorno tátil ao responder e tocar botões',
+                  color: AppColors.streakColor,
+                  value: settings.hapticsEnabled,
+                  onChanged: (v) =>
+                      ref.read(settingsProvider.notifier).setHapticsEnabled(v),
+                ),
                 const SizedBox(height: 24),
                 _SectionLabel('Sobre'),
                 _SettingsTile(
@@ -183,6 +205,73 @@ class _SettingsTile extends StatelessWidget {
           Text(value,
               style: AppTextStyles.bodyMedium
                   .copyWith(color: AppColors.textSecondary)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SwitchTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String description;
+  final Color color;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _SwitchTile({
+    required this.icon,
+    required this.label,
+    required this.description,
+    required this.color,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cardBorder, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: AppTextStyles.bodyLarge),
+                const SizedBox(height: 2),
+                Text(description, style: AppTextStyles.bodySmall),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: color,
+          ),
         ],
       ),
     );

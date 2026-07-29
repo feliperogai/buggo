@@ -2,6 +2,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/audio/sound_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../shared/widgets/mascot_widget.dart';
@@ -32,6 +33,15 @@ class _SuccessScreenState extends State<SuccessScreen> {
     super.initState();
     _confetti = ConfettiController(duration: const Duration(seconds: 4));
     _confetti.play();
+    // Fanfarra junto do confete — este é o clímax da lição.
+    SoundService.instance.playWithHaptic(Sfx.lessonComplete, Haptic.medium);
+    // As moedas ganhas entram logo depois, para os dois sons não se
+    // atropelarem.
+    if (widget.coinsEarned > 0) {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) SoundService.instance.play(Sfx.coin);
+      });
+    }
   }
 
   @override
