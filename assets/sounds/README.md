@@ -1,62 +1,59 @@
 # Efeitos sonoros do Buggo
 
-Coloque os arquivos **com exatamente estes nomes** nesta pasta. O app
-funciona normalmente sem eles — quem não existir simplesmente não toca
-(o `SoundService` marca como indisponível e segue em frente).
+Todos os sons vêm dos pacotes **[Kenney](https://kenney.nl/assets?q=audio)**
+(Interface Sounds, Casino Audio e Music Jingles), licença **CC0** — uso
+livre, sem atribuição obrigatória.
 
-| Arquivo | Quando toca | Onde no código |
-|---|---|---|
-| `correct.mp3` | Acertou a resposta / código rodou certo | `challenge_screen.dart` |
-| `wrong.mp3` | Errou a resposta / erro no código | `challenge_screen.dart` |
-| `lesson_complete.mp3` | Lição concluída, junto do confete | `success_screen.dart` |
-| `life_lost.mp3` | Perdeu uma vida de verdade | `challenge_screen.dart` |
-| `coin.mp3` | Ganhou moedas (0,7s após a fanfarra) | `success_screen.dart` |
-| `purchase.mp3` | Compra concluída | `market_screen.dart`, `hearts_screen.dart`, `lives_recovery_card.dart` |
-| `level_up.mp3` | Subiu de nível | *(a plugar)* |
-| `achievement.mp3` | Conquista desbloqueada | *(a plugar)* |
-| `streak.mp3` | Sequência avançou | *(a plugar)* |
-| `tap.mp3` | Confirmação ao ligar o som nas Configurações | `settings_provider.dart` |
+Os pacotes só são distribuídos em Ogg Vorbis, que o **iOS não decodifica**
+(`AVAudioPlayer` não suporta Vorbis). Por isso os arquivos aqui já estão
+convertidos para MP3 mono por `tool/build_sounds.py`.
 
-## Onde baixar (tudo CC0, uso livre e sem atribuição obrigatória)
+## O que cada arquivo é
 
-**[kenney.nl/assets/interface-sounds](https://kenney.nl/assets/interface-sounds)**
-— melhor opção para a maioria. Pacote com ~100 sons curtos de UI. Sugestões:
+| Arquivo | Origem (Kenney) | Duração | Quando toca |
+|---|---|---|---|
+| `correct.mp3` | `confirmation_001` | 0,29s | Acertou a resposta / código rodou certo |
+| `wrong.mp3` | `error_006` | 0,50s | Errou **sem** perder vida (Buggo+ ativo ou já zerado) |
+| `life_lost.mp3` | `error_003` | 0,53s | Errou **e** perdeu uma vida |
+| `purchase.mp3` | `confirmation_002` | 0,54s | Compra concluída |
+| `coin.mp3` | `chip-lay-1` | 0,17s | Moedas ganhas (0,7s após a fanfarra) |
+| `tap.mp3` | `click_001` | 0,10s | Confirmação ao ligar o som nas Configurações |
+| `lesson_complete.mp3` | `jingles_STEEL16` | 0,91s | Lição concluída, junto do confete |
+| `level_up.mp3` | `jingles_NES00` | 1,76s | Subiu de nível (1,4s após a fanfarra) |
+| `achievement.mp3` | `jingles_SAX07` | 1,74s | Conquista desbloqueada — **ainda não plugado** |
+| `streak.mp3` | `jingles_HIT00` | 0,28s | Sequência avançou (1,4s após a fanfarra) |
 
-- `correct.mp3` → `confirmation_001.ogg` ou `question_002.ogg`
-- `wrong.mp3` → `error_006.ogg` ou `error_008.ogg`
-- `purchase.mp3` → `confirmation_002.ogg`
-- `tap.mp3` → `click_001.ogg` (bem discreto)
-- `life_lost.mp3` → `error_003.ogg` (mais grave/seco)
+Total: **~85 KB**.
 
-**[kenney.nl/assets/casino-audio](https://kenney.nl/assets/casino-audio)**
-— para `coin.mp3`, use `chip_lay_001.ogg` ou similar.
+> `achievement.mp3` está pronto mas sem ponto de chamada: as conquistas são
+> calculadas por predicado em `data/content/achievements_catalog.dart`, então
+> não existe um evento de "desbloqueou agora" para disparar o som. Quando
+> esse evento existir, é só chamar `SoundService.instance.play(Sfx.achievement)`.
 
-**[kenney.nl/assets/music-jingles](https://kenney.nl/assets/music-jingles)**
-— jingles curtos para os momentos de celebração:
+## Só um som por evento
 
-- `lesson_complete.mp3` → `jingles_STEEL16.ogg` (ou qualquer "win")
-- `level_up.mp3` → `jingles_PIZZA00.ogg`
-- `achievement.mp3` → `jingles_SAX07.ogg`
-- `streak.mp3` → um jingle curto de 1s
+Erro e perda de vida acontecem juntos, mas tocar os dois embola o áudio —
+por isso `_playErrorSound()` em `challenge_screen.dart` escolhe **um**: se a
+vida foi descontada toca `life_lost`, senão toca `wrong`. Pelo mesmo motivo
+as celebrações secundárias (`coin`, `level_up`, `streak`) entram com atraso,
+depois que a fanfarra termina.
 
-Alternativas: [mixkit.co/free-sound-effects/game](https://mixkit.co/free-sound-effects/game),
-[pixabay.com/sound-effects](https://pixabay.com/sound-effects/).
+## Volume
 
-## Recomendações técnicas
+Normalizado por categoria em `tool/build_sounds.py`: efeitos que tocam o
+tempo todo ficam mais baixos (pico 0,40–0,55) que as celebrações, que são
+pontuais (0,75–0,85). Para reequilibrar, mexa nos valores do `MAPPING` e
+rode o script de novo.
 
-- **Formato**: `.mp3` (o nome do arquivo na tabela precisa bater). Os
-  pacotes da Kenney vêm em `.ogg`/`.wav` — converta e renomeie.
-- **Duração**: 0,2–0,5s para os efeitos de UI; até 2s para as celebrações.
-  Som longo demais atrapalha o ritmo do quiz.
-- **Volume**: normalize tudo no mesmo nível, e deixe os efeitos de acerto/
-  erro um pouco mais baixos — eles tocam o tempo todo.
-- **Tamanho**: mono, 44.1kHz, ~64kbps já basta. Cada arquivo deve ficar
-  abaixo de ~30KB para não inchar o APK.
+## Trocar um som
 
-## Como testar
+1. Baixe o pacote da Kenney e coloque os `.ogg` nesta pasta.
+2. Ajuste o `MAPPING` em `tool/build_sounds.py`.
+3. Rode `py tool/build_sounds.py` (precisa de `soundfile`, `lameenc`,
+   `numpy`). Ele converte, normaliza e **apaga os `.ogg` que sobrarem**.
 
-Depois de colocar os arquivos, rode `flutter run`. Não precisa mexer em
-código: o `SoundService` resolve pelo nome. Se um som não tocar, o motivo
-aparece no console como `SoundService: som "x.mp3" indisponível (...)`.
+Se um som não tocar, o motivo aparece no console como
+`SoundService: som "x.mp3" indisponível (...)` — o app continua funcionando
+normalmente sem ele.
 
 O usuário pode desligar tudo em **Configurações › Som e vibração**.
