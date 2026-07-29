@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Splash nativa (Android < 12): só o fundo branco, sem o ícone.
+     A primeira coisa que o usuário deve ver é a animação Lottie da
+     SplashScreen do Flutter, então aqui ficamos com a mesma cor de fundo
+     dela (AppColors.surface) para a transição não piscar. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@android:color/white" />
-
-    <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@drawable/ic_launcher_foreground" />
-    </item>
 </layer-list>
