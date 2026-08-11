@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/config/env_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
@@ -52,6 +53,19 @@ class HomeScreen extends ConsumerWidget {
               onLivesTap: () => context.push(AppRouter.hearts),
             ),
           ),
+
+          // Desafio do dia. Só aparece com backend configurado: ele depende
+          // de conta e da IA no servidor, então no modo convidado seria um
+          // card que sempre falha ao tocar.
+          if (EnvConfig.isApiConfigured)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                child: _DailyChallengeCard(
+                  onTap: () => context.push(AppRouter.dailyChallenge),
+                ).animate().fade().slideY(begin: 0.15),
+              ),
+            ),
 
           SliverToBoxAdapter(
             child: Padding(
@@ -1039,6 +1053,77 @@ class _LevelCard extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Atalho para o desafio diário gerado pela IA.
+///
+/// Visual escuro de propósito: destaca-se dos cards claros da trilha e
+/// antecipa o editor de código, que também é escuro.
+class _DailyChallengeCard extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _DailyChallengeCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1B1630), Color(0xFF3B2A6B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.18),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.terminal_rounded,
+                  color: Color(0xFF9ECE6A), size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Desafio do dia',
+                    style: AppTextStyles.headlineSmall
+                        .copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Escreva código de verdade e a IA corrige',
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: const Color(0xFFB9AEE0)),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_rounded,
+                color: Colors.white, size: 20),
+          ],
         ),
       ),
     );
