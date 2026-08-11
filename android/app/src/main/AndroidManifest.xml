@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <!-- Sem READ_MEDIA_IMAGES / READ_EXTERNAL_STORAGE de propósito: a foto de
+         perfil é escolhida pelo seletor de fotos do Android (padrão no
+         image_picker_android >= 0.8.12), que devolve a imagem sem exigir
+         acesso à galeria inteira. Declarar essas permissões reprova a versão
+         na Política de permissões de fotos e vídeos do Google Play. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <application
         android:label="Buggo"
