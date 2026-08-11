@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/config/env_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
@@ -29,6 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   late AuthMode _mode = widget.initialMode;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String? _error;
 
   @override
@@ -78,6 +80,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _error = 'Não foi possível conectar. Verifique sua internet.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isGoogleLoading = true;
+      _error = null;
+    });
+    try {
+      final profile = await _authRepository.loginWithGoogle();
+      // null = o usuário fechou o seletor de contas. Não é erro, então não
+      // mostra mensagem nenhuma.
+      if (profile == null || !mounted) return;
+      ref.read(userProvider.notifier).saveProfile(profile);
+      context.go(AppRouter.home);
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'Não foi possível conectar. Verifique sua internet.');
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -227,6 +250,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 isLoading: _isLoading,
                 width: double.infinity,
               ),
+              // Só aparece quando o GOOGLE_SERVER_CLIENT_ID está no .env —
+              // um botão que falha no toque é pior que botão nenhum.
+              if (EnvConfig.isGoogleSignInConfigured) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Expanded(child: Divider(thickness: 1)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('ou', style: AppTextStyles.bodySmall),
+                    ),
+                    const Expanded(child: Divider(thickness: 1)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _GoogleSignInButton(
+                  loading: _isGoogleLoading,
+                  onPressed: _isLoading || _isGoogleLoading ? null : _signInWithGoogle,
+                ),
+              ],
               const SizedBox(height: 16),
               Center(
                 child: TextButton(
@@ -240,6 +283,75 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Botão "Entrar com Google".
+///
+/// Fundo branco e texto escuro seguindo as diretrizes de marca do Google.
+/// O "G" aqui é um desenho aproximado; para publicar com anúncios de marca
+/// vale trocar pelo asset oficial (developers.google.com/identity/branding-guidelines).
+class _GoogleSignInButton extends StatelessWidget {
+  final bool loading;
+  final VoidCallback? onPressed;
+
+  const _GoogleSignInButton({required this.loading, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF1F1B2E),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.textMuted.withValues(alpha: 0.35)),
+          ),
+        ),
+        child: loading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF4285F4),
+                    ),
+                    child: const Text(
+                      'G',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Entrar com Google',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1F1B2E),
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }

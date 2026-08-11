@@ -21,4 +21,31 @@ class EnvConfig {
   }
 
   static bool get isApiConfigured => apiBaseUrl.isNotEmpty;
+
+  /// OAuth *Web* client ID do projeto no Google Cloud — não o client ID
+  /// Android. É ele que vira a `aud` do ID token, e o backend recusa o
+  /// token se não bater (ver `server/api/auth/google.ts`).
+  ///
+  /// Sem essa chave o botão "Entrar com Google" some da tela de login, em
+  /// vez de aparecer e falhar no toque.
+  static String get googleServerClientId =>
+      dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ?? '';
+
+  static bool get isGoogleSignInConfigured =>
+      isApiConfigured && googleServerClientId.isNotEmpty;
+
+  /// Unidade de anúncio premiado do AdMob.
+  ///
+  /// O padrão é a unidade **de teste** oficial do Google: em debug ela é
+  /// sempre usada, mesmo que o .env traga a de produção. Usar a unidade real
+  /// durante o desenvolvimento gera tráfego inválido e é motivo de suspensão
+  /// da conta AdMob.
+  static const _testRewardedAdUnitId =
+      'ca-app-pub-3940256099942544/5224354917';
+
+  static String rewardedAdUnitId({required bool isDebug}) {
+    if (isDebug) return _testRewardedAdUnitId;
+    final id = dotenv.env['ADMOB_REWARDED_AD_UNIT_ID'] ?? '';
+    return id.isEmpty ? _testRewardedAdUnitId : id;
+  }
 }

@@ -133,6 +133,27 @@ class UserNotifier extends Notifier<UserProfile?> {
     return buyLives(missing);
   }
 
+  /// Devolve todas as vidas depois de o usuário assistir a um anúncio
+  /// premiado até o fim. Diferente de [buyLives], não custa moedas — o
+  /// "pagamento" foi o anúncio.
+  ///
+  /// Só deve ser chamado com a recompensa já confirmada pelo SDK do AdMob
+  /// (ver `AdsService.showRewarded`). Retorna false quando não havia nada a
+  /// recuperar, para a UI não anunciar um ganho que não houve.
+  bool refillLivesFromAd() {
+    if (state == null) return false;
+    final profile = _refreshLives(state!);
+    if (profile.hasUnlimitedLives ||
+        profile.lives >= UserProfile.maxLives) {
+      return false;
+    }
+    saveProfile(profile.copyWith(
+      lives: UserProfile.maxLives,
+      clearLastLifeLostAt: true,
+    ));
+    return true;
+  }
+
   /// Spends coins to buy one Streak Freeze, up to [UserProfile.maxStreakFreezes].
   bool buyStreakFreeze() {
     if (state == null) return false;

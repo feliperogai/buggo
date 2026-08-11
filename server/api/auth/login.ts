@@ -18,7 +18,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const normalizedEmail = email.trim().toLowerCase();
   const rows = await sql`select * from users where email = ${normalizedEmail}`;
   const row = rows[0] as UserRow | undefined;
-  if (!row || !(await comparePassword(password, row.password_hash))) {
+
+  // Conta criada pelo Google não tem senha. Sem este guard, o bcrypt
+  // receberia null e quebraria com 500 em vez de orientar o usuário.
+  if (row && row.password_hash === null) {
+    res.status(409).json({
+      error: 'Esta conta usa o login com Google. Toque em "Entrar com Google".',
+    });
+    return;
+  }
+
+  if (!row || !(await comparePassword(password, row.password_hash!))) {
     res.status(401).json({ error: 'E-mail ou senha incorretos' });
     return;
   }

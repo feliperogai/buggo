@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/config/env_config.dart';
 import '../../../shared/models/user_profile.dart';
@@ -43,6 +44,51 @@ class AuthRepository {
       _uri('/api/auth/login'),
       headers: const {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
+    );
+    return _handleAuthResponse(response);
+  }
+
+  /// Entra com a conta Google do aparelho.
+  ///
+  /// O app só pega o ID token; quem decide se ele é válido é o backend, que
+  /// confere a assinatura do Google e a audiência. Se a conta já existir com
+  /// o mesmo e-mail, o servidor vincula o Google a ela em vez de criar uma
+  /// conta nova com o progresso zerado.
+  ///
+  /// Lança [AuthException] com mensagem pronta para exibir. Cancelar a
+  /// escolha de conta não é erro: devolve `null`.
+  Future<UserProfile?> loginWithGoogle() async {
+    if (!EnvConfig.isGoogleSignInConfigured) {
+      throw AuthException('Login com Google não está configurado neste app.');
+    }
+
+    final signIn = GoogleSignIn.instance;
+    if (!signIn.supportsAuthenticate()) {
+      throw AuthException('Login com Google não é suportado neste aparelho.');
+    }
+
+    String? idToken;
+    try {
+      // initialize() é idempotente; chamar aqui evita depender da ordem de
+      // boot só para uma tela que a maioria dos usuários nem abre.
+      await signIn.initialize(
+        serverClientId: EnvConfig.googleServerClientId,
+      );
+      final account = await signIn.authenticate();
+      idToken = account.authentication.idToken;
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return null;
+      throw AuthException('Não foi possível entrar com o Google: ${e.code.name}');
+    }
+
+    if (idToken == null) {
+      throw AuthException('O Google não devolveu um token válido.');
+    }
+
+    final response = await http.post(
+      _uri('/api/auth/google'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({'idToken': idToken}),
     );
     return _handleAuthResponse(response);
   }

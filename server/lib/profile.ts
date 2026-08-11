@@ -5,7 +5,9 @@
 export interface UserRow {
   id: string;
   email: string;
-  password_hash: string;
+  // Nulo em contas criadas pelo login com Google, que não têm senha.
+  password_hash: string | null;
+  google_sub: string | null;
   name: string;
   language: string;
   level: string;

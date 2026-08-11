@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/ads/ads_service.dart';
 import '../../core/audio/sound_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
@@ -23,6 +24,7 @@ class LivesRecoveryCard extends ConsumerStatefulWidget {
 
 class _LivesRecoveryCardState extends ConsumerState<LivesRecoveryCard> {
   Timer? _timer;
+  bool _watchingAd = false;
 
   @override
   void initState() {
@@ -47,6 +49,21 @@ class _LivesRecoveryCardState extends ConsumerState<LivesRecoveryCard> {
     return '${m}min';
   }
 
+  void _showSnack(String message, {required bool ok}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: ok ? AppColors.success : AppColors.error,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        content: Text(
+          message,
+          style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+        ),
+      ),
+    );
+  }
+
   void _buyLife() {
     final ok = ref.read(userProvider.notifier).buyLife();
     if (!mounted) return;
@@ -55,19 +72,41 @@ class _LivesRecoveryCardState extends ConsumerState<LivesRecoveryCard> {
     } else {
       SoundService.instance.haptic(Haptic.heavy);
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: ok ? AppColors.success : AppColors.error,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        content: Text(
-          ok
-              ? 'Vida recuperada!'
-              : 'Moedas insuficientes ou vidas já estão cheias.',
-          style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-        ),
-      ),
+    _showSnack(
+      ok ? 'Vida recuperada!' : 'Moedas insuficientes ou vidas já estão cheias.',
+      ok: ok,
     );
+  }
+
+  /// Exibe o anúncio premiado e, se o usuário assistir até o fim, devolve
+  /// todas as vidas. Fechar o anúncio no meio não dá recompensa — quem
+  /// decide isso é o SDK do AdMob, não o app.
+  Future<void> _watchAd() async {
+    if (_watchingAd) return;
+    setState(() => _watchingAd = true);
+    try {
+      final earned = await AdsService.instance.showRewarded();
+      if (!mounted) return;
+      if (!earned) {
+        SoundService.instance.haptic(Haptic.heavy);
+        _showSnack(
+          'Anúncio não concluído — as vidas não foram recuperadas.',
+          ok: false,
+        );
+        return;
+      }
+      final refilled = ref.read(userProvider.notifier).refillLivesFromAd();
+      if (!mounted) return;
+      if (refilled) {
+        SoundService.instance.playWithHaptic(Sfx.purchase, Haptic.light);
+      }
+      _showSnack(
+        refilled ? 'Vidas recuperadas!' : 'Suas vidas já estavam cheias.',
+        ok: refilled,
+      );
+    } finally {
+      if (mounted) setState(() => _watchingAd = false);
+    }
   }
 
   @override
@@ -139,6 +178,12 @@ class _LivesRecoveryCardState extends ConsumerState<LivesRecoveryCard> {
           ),
           const SizedBox(height: 6),
           Text(status, style: AppTextStyles.bodySmall),
+          // Assinante do Buggo+ tem vidas ilimitadas, então o anúncio não
+          // teria o que recuperar — o botão só existe para quem precisa.
+          if (!unlimited && !full) ...[
+            const SizedBox(height: 14),
+            _WatchAdButton(loading: _watchingAd, onTap: _watchAd),
+          ],
           const SizedBox(height: 14),
           IntrinsicHeight(
             child: Row(
@@ -169,6 +214,68 @@ class _LivesRecoveryCardState extends ConsumerState<LivesRecoveryCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Botão do anúncio premiado. Largura cheia e cor de destaque porque é a
+/// única forma gratuita de recuperar vidas na hora — as outras custam
+/// moedas ou dinheiro.
+class _WatchAdButton extends StatelessWidget {
+  final bool loading;
+  final Future<void> Function() onTap;
+
+  const _WatchAdButton({required this.loading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: loading ? null : () => onTap(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+              color: AppColors.success.withValues(alpha: 0.35), width: 1.4),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: loading
+                  ? const CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.success),
+                    )
+                  : const Icon(Icons.play_circle_fill_rounded,
+                      color: AppColors.success, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    loading ? 'Carregando anúncio...' : 'Assistir anúncio',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text('Grátis · recupera todas as vidas',
+                      style: AppTextStyles.bodySmall),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

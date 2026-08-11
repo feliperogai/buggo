@@ -36,6 +36,17 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- App ID do AdMob. Obrigatório: sem esta entrada o SDK derruba o
+             app logo no boot, não apenas ao exibir anúncio.
+
+             TROCAR ANTES DE PUBLICAR COM ANÚNCIOS REAIS — este é o App ID de
+             teste do Google. O ID de produção sai em admob.google.com e tem
+             o formato ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY (com "~", que é
+             diferente da unidade de anúncio, que usa "/"). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
