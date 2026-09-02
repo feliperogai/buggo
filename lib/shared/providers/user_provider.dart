@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_profile.dart';
 import '../../core/storage/hive_storage.dart';
 import '../../features/auth/data/auth_repository.dart';
+import '../../features/auth/data/google_sign_in_service.dart';
 
 class UserNotifier extends Notifier<UserProfile?> {
   static const int lifeCoinCost = 50;
@@ -10,6 +11,7 @@ class UserNotifier extends Notifier<UserProfile?> {
   static const int streakFreezeCoinCost = 200;
 
   final _authRepository = AuthRepository();
+  final _googleSignIn = GoogleSignInService();
 
   @override
   UserProfile? build() {
@@ -37,11 +39,52 @@ class UserNotifier extends Notifier<UserProfile?> {
     }
   }
 
+  /// Adopts the account returned by the backend after a successful
+  /// login/signup.
+  ///
+  /// On **signup** the account is brand new, so everything the guest already
+  /// earned on this device is carried into it (and pushed to the server by
+  /// [saveProfile]) — otherwise "criar conta para guardar o progresso" would
+  /// silently throw that progress away.
+  ///
+  /// On **login** the server profile wins untouched: that account has its own
+  /// history, and overwriting it with local guest data would corrupt it.
+  void adoptServerProfile(
+    UserProfile account, {
+    required bool carryGuestProgress,
+  }) {
+    final guest = state;
+    if (!carryGuestProgress || guest == null || !guest.isGuest) {
+      saveProfile(account);
+      return;
+    }
+    saveProfile(account.copyWith(
+      language: guest.language,
+      level: guest.level,
+      dailyGoalMinutes: guest.dailyGoalMinutes,
+      xp: guest.xp,
+      coins: guest.coins,
+      streak: guest.streak,
+      lastStudyDate: guest.lastStudyDate,
+      completedLessons: guest.completedLessons,
+      unlockedAchievements: guest.unlockedAchievements,
+      avatarIndex: guest.avatarIndex,
+      customPhotoPath: guest.customPhotoPath,
+      lives: guest.lives,
+      lastLifeLostAt: guest.lastLifeLostAt,
+      unlimitedLivesUntil: guest.unlimitedLivesUntil,
+      streakFreezes: guest.streakFreezes,
+    ));
+  }
+
   /// Clears the local profile and server session (if any), leaving the app
   /// ready to show onboarding again. Does not touch the progress box — see
   /// the distinct "Resetar progresso" action for a full local wipe.
   Future<void> logout() async {
     await _authRepository.logout();
+    // Sem isto o Google reentra sozinho na mesma conta no próximo login, sem
+    // mostrar o seletor — quem quis trocar de conta não consegue.
+    await _googleSignIn.signOut();
     await HiveStorage.user.clear();
     state = null;
   }

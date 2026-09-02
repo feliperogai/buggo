@@ -1,31 +1,76 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../../core/config/env_config.dart';
 import 'ranking_entry.dart';
 
-/// Backs the Ranking screen with real accounts from the Vercel API (see
-/// `server/api/leaderboard.ts`) once `API_BASE_URL` is configured, falling
-/// back to local mock entries otherwise (missing `.env` key, network error,
-/// backend not deployed yet, etc).
+/// Thrown when the leaderboard couldn't be read from the backend. Carries a
+/// message naming the real cause: the screen shows it with a "Tentar de novo"
+/// button instead of quietly displaying invented people.
+class RankingUnavailable implements Exception {
+  final String message;
+  RankingUnavailable(this.message);
+  @override
+  String toString() => message;
+}
+
+/// Backs the Ranking screen with the real accounts stored in Neon, read
+/// through the Vercel API (see `server/api/leaderboard.ts`). The endpoint is
+/// public, so this works for guests too — signing in is only needed to
+/// *appear* in the ranking, not to see it.
+///
+/// There is deliberately no mock/sample fallback: showing fake names when the
+/// request fails made a broken connection look like a working leaderboard.
 class RankingRepository {
+  /// Injectable for tests; defaults to the shared client.
+  final http.Client _client;
+
+  RankingRepository({http.Client? client}) : _client = client ?? http.Client();
+
   bool get isLive => EnvConfig.isApiConfigured;
 
   Future<List<RankingEntry>> fetchTopByXp({int limit = 20}) =>
-      _fetch(by: 'xp', limit: limit, fallback: _mockXpRanking);
+      _fetch(by: 'xp', limit: limit);
 
   Future<List<RankingEntry>> fetchTopByStreak({int limit = 20}) =>
-      _fetch(by: 'streak', limit: limit, fallback: _mockStreakRanking);
+      _fetch(by: 'streak', limit: limit);
 
   Future<List<RankingEntry>> _fetch({
     required String by,
     required int limit,
-    required List<RankingEntry> fallback,
   }) async {
-    if (!isLive) return fallback;
+    if (!isLive) {
+      throw RankingUnavailable(
+        'App sem API_BASE_URL: o .env não foi embutido nesta build.',
+      );
+    }
+
+    final http.Response response;
     try {
-      final uri = Uri.parse('${EnvConfig.apiBaseUrl}/api/leaderboard?by=$by&limit=$limit');
-      final response = await http.get(uri);
-      if (response.statusCode != 200) return fallback;
+      response = await _client
+          .get(Uri.parse(
+              '${EnvConfig.apiBaseUrl}/api/leaderboard?by=$by&limit=$limit'))
+          .timeout(const Duration(seconds: 20));
+    } on SocketException catch (e) {
+      throw RankingUnavailable(
+        'Sem conexão com o servidor (${e.osError?.message ?? e.message}).',
+      );
+    } on HandshakeException catch (e) {
+      throw RankingUnavailable('Falha de TLS ao falar com o servidor: ${e.message}');
+    } on TimeoutException {
+      throw RankingUnavailable('O servidor demorou mais de 20s para responder.');
+    } on http.ClientException catch (e) {
+      throw RankingUnavailable('Falha de rede: ${e.message}');
+    }
+
+    if (response.statusCode != 200) {
+      throw RankingUnavailable(
+        'O servidor respondeu HTTP ${response.statusCode} ao buscar o ranking.',
+      );
+    }
+
+    try {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       final entries = body['entries'] as List<dynamic>;
       return entries.map((e) {
@@ -39,26 +84,9 @@ class RankingRepository {
         );
       }).toList();
     } catch (_) {
-      return fallback;
+      throw RankingUnavailable('Resposta inesperada do servidor ao ler o ranking.');
     }
   }
-
-  // ── Mock data (shown until the API is configured) ───────────────────────
-  static const _mockXpRanking = [
-    RankingEntry(id: 'mock-1', name: 'Marina', avatarIndex: 2, xp: 2340, streak: 41),
-    RankingEntry(id: 'mock-2', name: 'Lucas', avatarIndex: 0, xp: 2110, streak: 18),
-    RankingEntry(id: 'mock-3', name: 'Bia', avatarIndex: 4, xp: 1980, streak: 27),
-    RankingEntry(id: 'mock-4', name: 'Enzo', avatarIndex: 1, xp: 1750, streak: 9),
-    RankingEntry(id: 'mock-5', name: 'Sofia', avatarIndex: 5, xp: 1420, streak: 14),
-  ];
-
-  static const _mockStreakRanking = [
-    RankingEntry(id: 'mock-1', name: 'Marina', avatarIndex: 2, xp: 2340, streak: 41),
-    RankingEntry(id: 'mock-3', name: 'Bia', avatarIndex: 4, xp: 1980, streak: 27),
-    RankingEntry(id: 'mock-2', name: 'Lucas', avatarIndex: 0, xp: 2110, streak: 18),
-    RankingEntry(id: 'mock-5', name: 'Sofia', avatarIndex: 5, xp: 1420, streak: 14),
-    RankingEntry(id: 'mock-4', name: 'Enzo', avatarIndex: 1, xp: 1750, streak: 9),
-  ];
 }
 
 /// Weekly coin prize for the top 3 of the streak ranking. Purely

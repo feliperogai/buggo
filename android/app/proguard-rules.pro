@@ -11,3 +11,9 @@
 # Console; sem isso, o relatório de crash vem ilegível.
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Google Play Billing e google_sign_in usam modelos serializados por reflexão.
+# Sem estas regras a compra e o login funcionam em debug e falham no release.
+-keep class com.android.vending.billing.** { *; }
+-keep class com.google.android.gms.common.api.** { *; }
+-keep class com.google.android.gms.auth.** { *; }

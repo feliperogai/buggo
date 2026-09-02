@@ -4,7 +4,14 @@
          image_picker_android >= 0.8.12), que devolve a imagem sem exigir
          acesso à galeria inteira. Declarar essas permissões reprova a versão
          na Política de permissões de fotos e vídeos do Google Play. -->
+    <!-- Necessária para falar com a API na Vercel (login, sincronia de
+         perfil, ranking). Sem ela, só as builds de debug/profile têm
+         internet e a release falha com "Verifique sua internet". -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Google Play Billing: exigida pela biblioteca de faturamento
+         para abrir a folha de pagamento do Google. -->
+    <uses-permission android:name="com.android.vending.BILLING"/>
     <application
         android:label="Buggo"
         android:name="${applicationName}"

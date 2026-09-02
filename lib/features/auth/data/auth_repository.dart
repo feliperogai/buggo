@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/config/env_config.dart';
 import '../../../shared/models/user_profile.dart';
@@ -13,25 +16,79 @@ class AuthException implements Exception {
   String toString() => message;
 }
 
+/// Thrown only when the request never reached the backend — no internet,
+/// DNS/TLS failure, timeout. Kept separate from [AuthException] so the UI
+/// stops blaming the connection for errors that happened *after* the server
+/// answered (that was hiding the real cause of login failures).
+class NetworkException implements Exception {
+  final String message;
+  NetworkException(this.message);
+  @override
+  String toString() => message;
+}
+
 /// Talks to the Vercel API in front of Neon Postgres — the app never
 /// connects to Postgres directly. See `server/README.md`.
 class AuthRepository {
   final _session = AuthSession();
 
+  /// Injectable so the error-classification paths can be tested; defaults to
+  /// the same client `http.post`/`http.get` use internally.
+  final http.Client _client;
+
+  AuthRepository({http.Client? client}) : _client = client ?? http.Client();
+
   bool get isConfigured => EnvConfig.isApiConfigured;
 
   Uri _uri(String path) => Uri.parse('${EnvConfig.apiBaseUrl}$path');
+
+  /// Single entry point for every backend call: turns "never reached the
+  /// server" into [NetworkException] and everything else into an
+  /// [AuthException] that names the real cause, instead of letting the UI's
+  /// generic catch report all of them as "verifique sua internet".
+  Future<http.Response> _send(Future<http.Response> Function() call) async {
+    if (!isConfigured) {
+      throw AuthException(
+        'App sem API_BASE_URL: o .env não foi embutido nesta build.',
+      );
+    }
+    try {
+      return await call().timeout(const Duration(seconds: 20));
+    } on SocketException catch (e) {
+      throw NetworkException(
+        'Sem conexão com o servidor (${e.osError?.message ?? e.message}).',
+      );
+    } on HandshakeException catch (e) {
+      throw NetworkException('Falha de TLS ao falar com o servidor: ${e.message}');
+    } on TimeoutException {
+      throw NetworkException('O servidor demorou mais de 20s para responder.');
+    } on http.ClientException catch (e) {
+      throw NetworkException('Falha de rede: ${e.message}');
+    }
+  }
+
+  /// Decodes a JSON body, reporting the HTTP status when the server answered
+  /// with something that isn't JSON (a Vercel error page, for instance).
+  Map<String, dynamic> _decode(http.Response response) {
+    try {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw AuthException(
+        'Resposta inesperada do servidor (HTTP ${response.statusCode}).',
+      );
+    }
+  }
 
   Future<UserProfile> signup({
     required String email,
     required String password,
     required String name,
   }) async {
-    final response = await http.post(
-      _uri('/api/auth/signup'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password, 'name': name}),
-    );
+    final response = await _send(() => _client.post(
+          _uri('/api/auth/signup'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password, 'name': name}),
+        ));
     return _handleAuthResponse(response);
   }
 
@@ -39,31 +96,54 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
-      _uri('/api/auth/login'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    final response = await _send(() => _client.post(
+          _uri('/api/auth/login'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}),
+        ));
     return _handleAuthResponse(response);
   }
 
   Future<UserProfile> _handleAuthResponse(http.Response response) async {
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final body = _decode(response);
     if (response.statusCode >= 400) {
       throw AuthException(body['error'] as String? ?? 'Não foi possível completar a operação.');
     }
-    final token = body['token'] as String;
-    await _session.saveToken(token);
-    return UserProfile.fromMap(body['profile'] as Map<String, dynamic>);
+    final token = body['token'] as String?;
+    final profile = body['profile'];
+    if (token == null || profile is! Map<String, dynamic>) {
+      throw AuthException('Servidor não devolveu token/perfil (HTTP ${response.statusCode}).');
+    }
+    // Writing to the platform keystore can fail on some devices. That must
+    // not fail a login that the server already accepted — the session stays
+    // valid for this run, it just won't survive a restart.
+    try {
+      await _session.saveToken(token);
+    } catch (e) {
+      debugPrint('AuthSession: falha ao gravar o token no keystore: $e');
+    }
+    return UserProfile.fromMap(profile);
+  }
+
+  /// Exchanges a Google ID token for a backend session. The server verifies
+  /// the token with Google, then links it to an existing account with the
+  /// same e-mail or creates a new one — see `server/api/auth/google.ts`.
+  Future<UserProfile> loginWithGoogle(String idToken) async {
+    final response = await _send(() => _client.post(
+          _uri('/api/auth/google'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'idToken': idToken}),
+        ));
+    return _handleAuthResponse(response);
   }
 
   Future<String> forgotPassword(String email) async {
-    final response = await http.post(
-      _uri('/api/auth/forgot-password'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email}),
-    );
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await _send(() => _client.post(
+          _uri('/api/auth/forgot-password'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email}),
+        ));
+    final body = _decode(response);
     if (response.statusCode >= 400) {
       throw AuthException(body['error'] as String? ?? 'Não foi possível enviar o e-mail.');
     }
@@ -77,7 +157,7 @@ class AuthRepository {
     final token = await _session.readToken();
     if (token == null) return null;
     try {
-      final response = await http.get(
+      final response = await _client.get(
         _uri('/api/profile'),
         headers: {'Authorization': 'Bearer $token'},
       );
@@ -99,7 +179,7 @@ class AuthRepository {
     final token = await _session.readToken();
     if (token == null) return;
     try {
-      await http.put(
+      await _client.put(
         _uri('/api/profile'),
         headers: {
           'Content-Type': 'application/json',

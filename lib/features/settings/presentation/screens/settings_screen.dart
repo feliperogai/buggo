@@ -8,6 +8,7 @@ import '../../../../core/storage/hive_storage.dart';
 import '../../../../shared/constants/learning_languages.dart';
 import '../../../../shared/providers/settings_provider.dart';
 import '../../../../shared/providers/user_provider.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -97,6 +98,11 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   _LogoutButton(ref: ref),
+                ] else ...[
+                  // Guest: the profile lives only on this device, so there is
+                  // nothing to sign out of — what's missing is a way in.
+                  const SizedBox(height: 10),
+                  _SignInTile(),
                 ],
                 const SizedBox(height: 24),
                 _SectionLabel('Som e vibração'),
@@ -459,6 +465,57 @@ class _DangerZone extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+/// Entry point into login/signup for a guest already using the app. Without
+/// it, `/login` was reachable only from onboarding — so a guest could never
+/// sign in to save progress or appear in the ranking.
+class _SignInTile extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push(AppRouter.login, extra: AuthMode.login),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.primary, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.login_rounded,
+                  color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Entrar ou criar conta',
+                      style: AppTextStyles.bodyLarge
+                          .copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text('Salve seu progresso e apareça no ranking',
+                      style: AppTextStyles.bodySmall),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded,
+                color: AppColors.textMuted),
+          ],
         ),
       ),
     );

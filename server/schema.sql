@@ -37,3 +37,31 @@ create table if not exists password_reset_tokens (
   used boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- ── Login com Google + compras do Google Play ────────────────────────────
+-- Rode este bloco no mesmo SQL Editor do Neon. É idempotente.
+
+-- Conta criada pelo Google não tem senha, então password_hash deixa de ser
+-- obrigatório. Contas antigas (e-mail/senha) seguem funcionando.
+alter table users alter column password_hash drop not null;
+
+-- "sub" do token do Google. Único, mas nulo para quem entra por senha.
+alter table users add column if not exists google_id text;
+create unique index if not exists users_google_id_idx on users (google_id)
+  where google_id is not null;
+
+-- Uma linha por compra confirmada pela Play Developer API. A chave primária
+-- ser o purchase_token é o que impede replay: reenviar o mesmo token não
+-- credita moedas de novo.
+create table if not exists purchases (
+  purchase_token text primary key,
+  user_id uuid not null references users(id) on delete cascade,
+  product_id text not null,
+  kind text not null check (kind in ('product', 'subscription')),
+  coins_granted int4 not null default 0,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists purchases_user_idx on purchases (user_id);

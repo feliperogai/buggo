@@ -5,7 +5,7 @@
 export interface UserRow {
   id: string;
   email: string;
-  password_hash: string;
+  password_hash: string | null;
   name: string;
   language: string;
   level: string;

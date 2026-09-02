@@ -18,7 +18,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const normalizedEmail = email.trim().toLowerCase();
   const rows = await sql`select * from users where email = ${normalizedEmail}`;
   const row = rows[0] as UserRow | undefined;
-  if (!row || !(await comparePassword(password, row.password_hash))) {
+  if (!row) {
+    res.status(401).json({ error: 'E-mail ou senha incorretos' });
+    return;
+  }
+
+  // An account created through the Google button has no password. Saying so
+  // is not an enumeration leak worth avoiding here: the alternative is the
+  // user retrying a password that can never work.
+  const passwordHash = row.password_hash;
+  if (passwordHash === null) {
+    res.status(401).json({
+      error: 'Esta conta usa o login do Google. Toque em "Continuar com Google".',
+    });
+    return;
+  }
+
+  if (!(await comparePassword(password, passwordHash))) {
     res.status(401).json({ error: 'E-mail ou senha incorretos' });
     return;
   }

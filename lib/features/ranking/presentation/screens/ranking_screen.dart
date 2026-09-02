@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
+import '../../../../shared/widgets/buggo_button.dart';
 import '../../../../shared/widgets/pixel_avatars.dart';
 import '../../data/ranking_entry.dart';
 import '../../data/ranking_repository.dart';
 
 enum _RankingMode { xp, streak }
+
+/// Id of the locally-built row shown for someone who isn't in the server
+/// list (a guest, or an account ranked below the fetched page).
+const _localRowId = '__voce__';
 
 class RankingScreen extends ConsumerStatefulWidget {
   const RankingScreen({super.key});
@@ -39,22 +47,42 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
     });
   }
 
+  /// A signed-in account already comes back in the server list, so appending
+  /// a local "você" row would show the same person twice. The local row is
+  /// only added for someone the server didn't return: a guest (no account) or
+  /// an account ranked below the fetched page.
   List<RankingEntry> _withCurrentUser(
     List<RankingEntry> entries,
     UserProfile user,
   ) {
-    final me = RankingEntry(
-      id: 'me',
-      name: '${user.name} (você)',
-      avatarIndex: user.avatarIndex,
-      xp: user.xp,
-      streak: user.streak,
-    );
-    final merged = [...entries, me];
+    final merged = [...entries];
+    if (!_isListed(entries, user)) {
+      merged.add(RankingEntry(
+        id: _localRowId,
+        name: '${user.name} (você)',
+        avatarIndex: user.avatarIndex,
+        xp: user.xp,
+        streak: user.streak,
+      ));
+    }
     merged.sort((a, b) => _mode == _RankingMode.xp
         ? b.xp.compareTo(a.xp)
         : b.streak.compareTo(a.streak));
     return merged;
+  }
+
+  bool _isListed(List<RankingEntry> entries, UserProfile user) =>
+      user.id != null && entries.any((e) => e.id == user.id);
+
+  bool _isMe(RankingEntry entry, UserProfile user) =>
+      entry.id == _localRowId || (user.id != null && entry.id == user.id);
+
+  void _reload() {
+    setState(() {
+      _future = _mode == _RankingMode.xp
+          ? _repository.fetchTopByXp()
+          : _repository.fetchTopByStreak();
+    });
   }
 
   @override
@@ -134,6 +162,18 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
               child: _WeeklyPrizeBanner(),
             ),
           ),
+          if (user.isGuest)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                child: _GuestSignInBanner(
+                  onSignIn: () =>
+                      context.push(AppRouter.login, extra: AuthMode.login),
+                  onSignUp: () =>
+                      context.push(AppRouter.login, extra: AuthMode.signup),
+                ),
+              ),
+            ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
@@ -145,21 +185,6 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
                         : 'Ranking por sequência',
                     style: AppTextStyles.headlineSmall,
                   ),
-                  const Spacer(),
-                  if (!_repository.isLive)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.accent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Exemplo',
-                        style: AppTextStyles.labelSmall
-                            .copyWith(color: AppColors.accent),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -167,11 +192,21 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
           FutureBuilder<List<RankingEntry>>(
             future: _future,
             builder: (context, snapshot) {
-              if (!snapshot.hasData) {
+              if (snapshot.connectionState != ConnectionState.done) {
                 return const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(40),
                     child: Center(child: CircularProgressIndicator()),
+                  ),
+                );
+              }
+              if (snapshot.hasError) {
+                return SliverToBoxAdapter(
+                  child: _RankingError(
+                    message: snapshot.error is RankingUnavailable
+                        ? '${snapshot.error}'
+                        : 'Erro inesperado: ${snapshot.error}',
+                    onRetry: _reload,
                   ),
                 );
               }
@@ -188,7 +223,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
                         position: index + 1,
                         entry: entry,
                         mode: _mode,
-                        isCurrentUser: entry.id == 'me',
+                        isCurrentUser: _isMe(entry, user),
                       ),
                     )
                         .animate(delay: (index * 45).ms)
@@ -401,6 +436,133 @@ class _RankingTile extends StatelessWidget {
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w800,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+/// Shown to a guest: the leaderboard above is real, but a local-only profile
+/// never reaches the server, so it can't be ranked against other people.
+class _GuestSignInBanner extends StatelessWidget {
+  final VoidCallback onSignIn;
+  final VoidCallback onSignUp;
+
+  const _GuestSignInBanner({required this.onSignIn, required this.onSignUp});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.cardBorder, width: 1.4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(Icons.person_add_alt_1_rounded,
+                    color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Você está como convidado',
+                        style: AppTextStyles.bodyLarge
+                            .copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Entre na sua conta para salvar seu progresso e aparecer no ranking.',
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: BuggoButton(
+                  label: 'Entrar',
+                  icon: Icons.login_rounded,
+                  onPressed: onSignIn,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: BuggoButton(
+                  label: 'Criar conta',
+                  variant: BuggoButtonVariant.secondary,
+                  onPressed: onSignUp,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Replaces the list when the leaderboard couldn't be read. Names the real
+/// cause and offers a retry — the previous behaviour (silently showing five
+/// invented people) made a broken backend look healthy.
+class _RankingError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _RankingError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 40),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(Icons.cloud_off_rounded,
+                color: AppColors.error, size: 28),
+          ),
+          const SizedBox(height: 14),
+          Text('Não foi possível carregar o ranking',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyLarge
+                  .copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style:
+                AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          BuggoButton(
+            label: 'Tentar de novo',
+            icon: Icons.refresh_rounded,
+            onPressed: onRetry,
           ),
         ],
       ),

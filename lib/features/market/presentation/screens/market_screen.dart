@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +9,56 @@ import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
+import '../../../purchases/data/purchase_providers.dart';
+import '../../../purchases/data/purchase_service.dart';
+import '../../../purchases/data/store_products.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 
-class MarketScreen extends ConsumerWidget {
+class MarketScreen extends ConsumerStatefulWidget {
   const MarketScreen({super.key});
+
+  @override
+  ConsumerState<MarketScreen> createState() => _MarketScreenState();
+}
+
+class _MarketScreenState extends ConsumerState<MarketScreen> {
+  StreamSubscription<PurchaseOutcome>? _outcomes;
+  String? _pendingProductId;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ouve o resultado das compras, inclusive as reentregues pelo Play de
+    // sessões anteriores.
+    _outcomes =
+        ref.read(purchaseServiceProvider).outcomes.listen(_onPurchaseOutcome);
+  }
+
+  @override
+  void dispose() {
+    _outcomes?.cancel();
+    super.dispose();
+  }
+
+  void _onPurchaseOutcome(PurchaseOutcome outcome) {
+    if (!mounted) return;
+    setState(() => _pendingProductId = null);
+    switch (outcome) {
+      case PurchaseGranted(:final profile):
+        // O servidor é a fonte da verdade do saldo depois de uma compra.
+        ref.read(userProvider.notifier).saveProfile(profile);
+        _showResult(context, true, 'Compra confirmada!', '');
+      case PurchaseCanceled():
+        break;
+      case PurchaseFailed(:final message):
+        _showResult(context, false, '', message);
+    }
+  }
+
+  Future<void> _startPurchase(String productId) async {
+    setState(() => _pendingProductId = productId);
+    await ref.read(purchaseServiceProvider).buy(productId);
+  }
 
   static const _cosmeticOffers = [
     _CoinOffer(
@@ -22,28 +70,12 @@ class MarketScreen extends ConsumerWidget {
     ),
   ];
 
-  static const _coinPackages = [
-    _RealMoneyOffer(
-      title: '200 moedas',
-      description: 'Pacote pequeno',
-      price: 'R\$ 6,90',
-      icon: Icons.monetization_on_rounded,
-      color: AppColors.coinColor,
-    ),
-    _RealMoneyOffer(
-      title: '450 moedas',
-      description: 'Pacote médio',
-      price: 'R\$ 12,90',
-      icon: Icons.monetization_on_rounded,
-      color: AppColors.coinColor,
-    ),
-    _RealMoneyOffer(
-      title: '950 moedas',
-      description: 'Pacote grande',
-      price: 'R\$ 24,90',
-      icon: Icons.monetization_on_rounded,
-      color: AppColors.coinColor,
-    ),
+  /// Ordem em que os pacotes aparecem. Título, descrição e **preço** vêm do
+  /// Google Play (já localizados), não daqui.
+  static const _coinPackageIds = [
+    StoreProducts.coins200,
+    StoreProducts.coins450,
+    StoreProducts.coins950,
   ];
 
   void _showResult(
@@ -71,7 +103,7 @@ class MarketScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
 
     if (user == null) {
@@ -80,6 +112,18 @@ class MarketScreen extends ConsumerWidget {
       });
       return const SizedBox.shrink();
     }
+
+    // Estado da loja do Google: enquanto o Play não responde, a seção mostra
+    // um loader; se falhar, mostra o motivo em vez de botões que não compram.
+    final storeInit = ref.watch(purchaseInitProvider);
+    final service = ref.watch(purchaseServiceProvider);
+    final products = service.products;
+    final storeReady = storeInit.hasValue && service.isStoreAvailable;
+    final String? storeError = storeInit.hasError
+        ? 'Erro ao conectar na loja: ${storeInit.error}'
+        : (storeInit.hasValue && !service.isStoreAvailable
+            ? 'O Google Play não está disponível neste aparelho.'
+            : null);
 
     final unlimited = user.hasUnlimitedLives;
     final full = user.lives >= UserProfile.maxLives;
@@ -297,38 +341,72 @@ class MarketScreen extends ConsumerWidget {
             ),
           ),
 
-          // ── Seção: dinheiro real ─────────────────────────────────────
+          // ── Seção: dinheiro real (Google Play) ───────────────────────
           SliverToBoxAdapter(
             child: _SectionHeader(
               icon: Icons.credit_card_rounded,
               iconColor: AppColors.primary,
               title: 'Dinheiro real',
-              subtitle: 'Em breve — ainda não processamos pagamentos',
+              subtitle: storeReady
+                  ? 'Pagamento pelo Google Play'
+                  : 'Conectando à loja do Google...',
             ),
           ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 26),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _RealMoneyCard(
-                  offer: const _RealMoneyOffer(
-                    title: 'Buggo+ · Ilimitado',
-                    description: 'Vidas ilimitadas todo mês',
-                    price: 'R\$ 14,90/mês',
+                if (storeError != null)
+                  _StoreUnavailable(message: storeError)
+                else if (!storeReady)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 28),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else ...[
+                  _PlayProductCard(
+                    product: products[StoreProducts.buggoPlusMonthly],
+                    fallbackTitle: 'Buggo+ · Ilimitado',
+                    description: unlimited
+                        ? 'Sua assinatura está ativa'
+                        : 'Vidas ilimitadas enquanto a assinatura durar',
                     icon: Icons.workspace_premium_rounded,
                     color: AppColors.accent,
+                    isBusy: _pendingProductId == StoreProducts.buggoPlusMonthly,
+                    onTap: unlimited
+                        ? null
+                        : () => _startPurchase(StoreProducts.buggoPlusMonthly),
+                  ).animate(delay: 0.ms).slideY(begin: 0.14).fade(),
+                  const SizedBox(height: 12),
+                  ..._coinPackageIds.asMap().entries.map((entry) {
+                    final id = entry.value;
+                    final coins = StoreProducts.coinAmounts[id];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _PlayProductCard(
+                        product: products[id],
+                        fallbackTitle: '$coins moedas',
+                        description: 'Crédito direto na sua conta',
+                        icon: Icons.monetization_on_rounded,
+                        color: AppColors.coinColor,
+                        isBusy: _pendingProductId == id,
+                        onTap: () => _startPurchase(id),
+                      )
+                          .animate(delay: ((entry.key + 1) * 70).ms)
+                          .slideY(begin: 0.14)
+                          .fade(),
+                    );
+                  }),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          ref.read(purchaseServiceProvider).restore(),
+                      icon: const Icon(Icons.restore_rounded, size: 18),
+                      label: const Text('Restaurar compras'),
+                    ),
                   ),
-                ).animate(delay: 0.ms).slideY(begin: 0.14).fade(),
-                const SizedBox(height: 12),
-                ..._coinPackages.asMap().entries.map((entry) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _RealMoneyCard(offer: entry.value)
-                        .animate(delay: ((entry.key + 1) * 70).ms)
-                        .slideY(begin: 0.14)
-                        .fade(),
-                  );
-                }),
+                ],
               ]),
             ),
           ),
@@ -578,77 +656,131 @@ class _CosmeticCard extends StatelessWidget {
 }
 
 // ── Real-money offers (mock — disabled until payments are wired) ─
-class _RealMoneyOffer {
-  final String title;
+class _PlayProductCard extends StatelessWidget {
+  /// Vem do Google Play. Nulo enquanto a consulta não voltou ou quando o id
+  /// não existe no Play Console — daí o card aparece desabilitado.
+  final ProductDetails? product;
+  final String fallbackTitle;
   final String description;
-  final String price;
   final IconData icon;
   final Color color;
+  final bool isBusy;
+  final VoidCallback? onTap;
 
-  const _RealMoneyOffer({
-    required this.title,
+  const _PlayProductCard({
+    required this.product,
+    required this.fallbackTitle,
     required this.description,
-    required this.price,
     required this.icon,
     required this.color,
+    required this.isBusy,
+    required this.onTap,
   });
-}
-
-class _RealMoneyCard extends StatelessWidget {
-  final _RealMoneyOffer offer;
-
-  const _RealMoneyCard({required this.offer});
 
   @override
   Widget build(BuildContext context) {
+    final missing = product == null;
+    final enabled = !missing && !isBusy && onTap != null;
+
     return Opacity(
-      opacity: 0.6,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-              color: offer.color.withValues(alpha: 0.22), width: 1.4),
+      opacity: enabled ? 1 : 0.55,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+                color: color.withValues(alpha: enabled ? 0.5 : 0.22),
+                width: 1.4),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(product?.title ?? fallbackTitle,
+                        style: AppTextStyles.headlineSmall),
+                    const SizedBox(height: 2),
+                    Text(
+                      missing ? 'Indisponível na loja agora' : description,
+                      style: AppTextStyles.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              if (isBusy)
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.4),
+                )
+              else
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: enabled ? color.withValues(alpha: 0.12)
+                                   : AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  // Preço formatado pelo próprio Play: moeda e localização
+                  // corretas para cada país, sem conversão no app.
+                  child: Text(
+                    product?.price ?? '—',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: enabled ? color : AppColors.textMuted,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: offer.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(offer.icon, color: offer.color, size: 26),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(offer.title, style: AppTextStyles.headlineSmall),
-                  const SizedBox(height: 2),
-                  Text('Em breve · ${offer.description}',
-                      style: AppTextStyles.bodySmall),
-                ],
-              ),
-            ),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                offer.price,
-                style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.textMuted, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
-        ),
+      ),
+    );
+  }
+}
+
+/// Mostrado quando a loja do Google não respondeu — melhor dizer o motivo do
+/// que exibir botões de compra que não funcionam.
+class _StoreUnavailable extends StatelessWidget {
+  final String message;
+  const _StoreUnavailable({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.cardBorder, width: 1.4),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.storefront_rounded,
+              color: AppColors.textMuted, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(message,
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textSecondary)),
+          ),
+        ],
       ),
     );
   }

@@ -21,4 +21,16 @@ class EnvConfig {
   }
 
   static bool get isApiConfigured => apiBaseUrl.isNotEmpty;
+
+  /// **Web** OAuth client id from Google Cloud — the audience the backend
+  /// validates the Google ID token against (`GOOGLE_WEB_CLIENT_ID` there).
+  /// It is deliberately the web id, not the Android one: the Android app
+  /// requests a token addressed to the backend.
+  static String get googleServerClientId =>
+      dotenv.env['GOOGLE_SERVER_CLIENT_ID']?.trim() ?? '';
+
+  /// Google sign-in is only offered when both the API and the client id are
+  /// configured — without them the button could only ever fail.
+  static bool get isGoogleSignInConfigured =>
+      isApiConfigured && googleServerClientId.isNotEmpty;
 }

@@ -37,3 +37,59 @@ npm run typecheck
 - `PUT /api/profile` — header `Authorization: Bearer <token>`, corpo = perfil
   completo
 - `GET /api/leaderboard?by=xp|streak&limit=20` — público
+\
+
+## Endpoints novos
+
+- `POST /api/auth/google` — `{ idToken }` → `{ token, profile }`. Valida o
+  token com o Google, vincula a uma conta existente de mesmo e-mail ou cria
+  uma nova (sem senha).
+- `POST /api/purchases/verify` — header `Authorization: Bearer <token>`,
+  corpo `{ productId, purchaseToken }` → `{ profile }`. Confirma a compra na
+  Play Developer API antes de creditar. O `purchase_token` é chave primária
+  da tabela `purchases`, então reenviar o mesmo token não credita de novo.
+
+## O que precisa ser configurado fora do código
+
+Sem estes passos o botão do Google não aparece e as compras ficam
+indisponíveis — o app continua funcionando no resto.
+
+### Google Cloud (login)
+
+1. Crie (ou reaproveite) um projeto no Google Cloud.
+2. **APIs e Serviços > Tela de permissão OAuth**: preencha e publique.
+3. **Credenciais > Criar credenciais > ID do cliente OAuth**, duas vezes:
+   - Tipo **Android**: pacote `com.buggo.app` + a impressão digital **SHA-1**
+     da keystore de release (`keytool -list -v -keystore <sua.jks>`). Se for
+     usar a Assinatura de apps do Google Play, cadastre também o SHA-1 que o
+     Play Console mostra em *Configuração > Integridade do app*.
+   - Tipo **Web**: copie o Client ID gerado.
+4. O Client ID **Web** vai em dois lugares: `GOOGLE_WEB_CLIENT_ID` nas env
+   vars da Vercel e `GOOGLE_SERVER_CLIENT_ID` no `.env` do app Flutter.
+
+### Google Play Console (pagamentos)
+
+1. Publique o app em pelo menos um canal de teste (interno serve). Produtos
+   não aparecem para apps nunca publicados.
+2. **Monetizar > Produtos > Produtos no app**, crie três consumíveis com
+   exatamente estes IDs: `coins_200`, `coins_450`, `coins_950`.
+3. **Monetizar > Produtos > Assinaturas**, crie `buggo_plus_monthly` com um
+   plano base mensal. Defina os preços por país — o app não tem preço fixo,
+   ele mostra o que o Play devolver.
+4. **Configuração > Teste de licença**: adicione sua conta Google, senão as
+   compras de teste são cobradas de verdade.
+
+### Service account (validação das compras)
+
+1. No Google Cloud, ative a **Google Play Android Developer API**.
+2. **IAM > Contas de serviço**: crie uma, gere uma chave JSON.
+3. No Play Console, **Usuários e permissões**: convide o e-mail da service
+   account com permissão de *Ver dados financeiros* e *Gerenciar pedidos*.
+4. Cole o JSON inteiro (uma linha só) em `PLAY_SERVICE_ACCOUNT_JSON` na
+   Vercel, e defina `ANDROID_PACKAGE_NAME=com.buggo.app`.
+
+### Neon
+
+Rode o bloco novo do fim de `schema.sql` no SQL Editor (é idempotente):
+torna `password_hash` opcional, adiciona `google_id` e cria a tabela
+`purchases`.
