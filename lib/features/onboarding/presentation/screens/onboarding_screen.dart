@@ -63,6 +63,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  /// Volta uma página. Sem isto, quem tocava em "continuar como convidado"
+  /// ficava preso: o PageView é NeverScrollable, então não dava nem para
+  /// arrastar de volta até os botões de entrar/criar conta.
+  void _back() {
+    if (_page == 0) return;
+    _pageCtrl.previousPage(
+        duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+  }
+
   void _continueAsGuest() {
     _pageCtrl.nextPage(
         duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
@@ -86,81 +95,123 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Progress bar moderna (a página de boas-vindas não conta, tem
-            // suas próprias ações). Sempre presente no Column (só o conteúdo
-            // muda) para não alterar o formato da lista de filhos — do
-            // contrário o Element do PageView é recriado do zero a cada
-            // troca de página, perdendo a posição de scroll.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-              child: _page == 0
-                  ? const SizedBox(height: 5)
-                  : Row(
-                      children: List.generate(4, (i) {
-                        final active = i <= _page - 1;
-                        return Expanded(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            height: 5,
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            decoration: BoxDecoration(
-                              gradient:
-                                  active ? AppColors.primaryGradient : null,
-                              color: active ? null : AppColors.cardBorder,
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-            ),
-
-            Expanded(
-              child: PageView(
-                controller: _pageCtrl,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (i) => setState(() => _page = i),
-                children: [
-                  _WelcomeChoicePage(
-                    onGuest: _continueAsGuest,
-                    onLogin: () => _goToLogin(AuthMode.login),
-                    onSignup: () => _goToLogin(AuthMode.signup),
+    // BackButtonListener, e não PopScope: com `MaterialApp.router` + go_router
+    // quem recebe o botão físico é o BackButtonDispatcher, e o PopScope desta
+    // tela não era consultado — o back fechava o app no meio do onboarding
+    // (verificado no emulador).
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        if (_page == 0) return false; // deixa o sistema sair do app
+        _back();
+        return true; // consumido: volta uma etapa
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Progress bar moderna (a página de boas-vindas não conta, tem
+              // suas próprias ações). Sempre presente no Column (só o conteúdo
+              // muda) para não alterar o formato da lista de filhos — do
+              // contrário o Element do PageView é recriado do zero a cada
+              // troca de página, perdendo a posição de scroll.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 24, 0),
+                // Altura fixa nas duas variantes para a página não pular ao
+                // trocar de etapa.
+                child: SizedBox(
+                  height: 40,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 40,
+                        child: _page == 0
+                            ? null
+                            : IconButton(
+                                onPressed: _back,
+                                padding: EdgeInsets.zero,
+                                splashRadius: 22,
+                                tooltip: 'Voltar',
+                                icon: const Icon(Icons.arrow_back_rounded,
+                                    color: AppColors.textSecondary, size: 22),
+                              ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _page == 0
+                            ? const SizedBox(height: 5)
+                            : Row(
+                                children: List.generate(4, (i) {
+                                  final active = i <= _page - 1;
+                                  return Expanded(
+                                    child: AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      height: 5,
+                                      margin: const EdgeInsets.symmetric(
+                                          horizontal: 3),
+                                      decoration: BoxDecoration(
+                                        gradient: active
+                                            ? AppColors.primaryGradient
+                                            : null,
+                                        color: active
+                                            ? null
+                                            : AppColors.cardBorder,
+                                        borderRadius:
+                                            BorderRadius.circular(100),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ),
+                      ),
+                    ],
                   ),
-                  _NamePage(
-                      ctrl: _nameCtrl,
-                      onChanged: (v) => setState(() => _name = v)),
-                  _LanguagePage(
-                      selected: _language,
-                      onSelect: (v) => setState(() => _language = v)),
-                  _LevelPage(
-                      selected: _userLevel,
-                      onSelect: (v) => setState(() => _userLevel = v)),
-                  _GoalPage(
-                      selected: _dailyGoal,
-                      onSelect: (v) => setState(() => _dailyGoal = v)),
-                ],
+                ),
               ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-              child: _page == 0
-                  ? const SizedBox.shrink()
-                  : BuggoButton(
-                      label: _page == 4 ? 'Começar!' : 'Próximo',
-                      icon: _page == 4
-                          ? Icons.rocket_launch_rounded
-                          : Icons.arrow_forward_rounded,
-                      onPressed: _next,
-                      width: double.infinity,
+              Expanded(
+                child: PageView(
+                  controller: _pageCtrl,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (i) => setState(() => _page = i),
+                  children: [
+                    _WelcomeChoicePage(
+                      onGuest: _continueAsGuest,
+                      onLogin: () => _goToLogin(AuthMode.login),
+                      onSignup: () => _goToLogin(AuthMode.signup),
                     ),
-            ),
-          ],
+                    _NamePage(
+                        ctrl: _nameCtrl,
+                        onChanged: (v) => setState(() => _name = v)),
+                    _LanguagePage(
+                        selected: _language,
+                        onSelect: (v) => setState(() => _language = v)),
+                    _LevelPage(
+                        selected: _userLevel,
+                        onSelect: (v) => setState(() => _userLevel = v)),
+                    _GoalPage(
+                        selected: _dailyGoal,
+                        onSelect: (v) => setState(() => _dailyGoal = v)),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                child: _page == 0
+                    ? const SizedBox.shrink()
+                    : BuggoButton(
+                        label: _page == 4 ? 'Começar!' : 'Próximo',
+                        icon: _page == 4
+                            ? Icons.rocket_launch_rounded
+                            : Icons.arrow_forward_rounded,
+                        onPressed: _next,
+                        width: double.infinity,
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
