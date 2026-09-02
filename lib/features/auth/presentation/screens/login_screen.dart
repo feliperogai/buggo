@@ -9,7 +9,8 @@ import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/buggo_button.dart';
 import '../../../../shared/widgets/mascot_widget.dart';
 import '../../data/auth_repository.dart';
-import '../../data/google_sign_in_service.dart';
+import '../google_auth_flow.dart';
+import '../widgets/google_button.dart';
 
 enum AuthMode { login, signup }
 
@@ -24,7 +25,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _authRepository = AuthRepository();
-  final _googleSignIn = GoogleSignInService();
+  final _googleAuth = GoogleAuthFlow();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
@@ -92,36 +93,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  /// Google flow: the picker gives an ID token, the backend turns it into a
-  /// session. A guest's local progress is carried over on the way in — the
-  /// server decides whether this is a new account or an existing one, so
-  /// [UserNotifier.adoptServerProfile] only merges when the account came
-  /// back empty of progress.
   Future<void> _signInWithGoogle() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
-    try {
-      final idToken = await _googleSignIn.signInAndGetIdToken();
-      if (idToken == null) return; // usuário fechou o seletor
-      final profile = await _authRepository.loginWithGoogle(idToken);
-      if (!mounted) return;
-      ref.read(userProvider.notifier).adoptServerProfile(
-            profile,
-            carryGuestProgress: profile.xp == 0 && profile.completedLessons.isEmpty,
-          );
-      context.go(AppRouter.home);
-    } on GoogleSignInFailure catch (e) {
-      setState(() => _error = e.message);
-    } on NetworkException catch (e) {
-      setState(() => _error = e.message);
-    } on AuthException catch (e) {
-      setState(() => _error = e.message);
-    } catch (e) {
-      setState(() => _error = 'Erro inesperado: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    final result = await _googleAuth.run();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    switch (result) {
+      case GoogleAuthSuccess():
+        ref.read(userProvider.notifier).adoptServerProfile(
+              result.profile,
+              carryGuestProgress: result.carryGuestProgress,
+            );
+        context.go(AppRouter.home);
+      case GoogleAuthCanceled():
+        break;
+      case GoogleAuthError(:final message):
+        setState(() => _error = message);
     }
   }
 
@@ -218,8 +208,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: AppTextStyles.bodyMedium,
               ),
               const SizedBox(height: 24),
-              if (_googleSignIn.isConfigured) ...[
-                _GoogleButton(
+              if (_googleAuth.isConfigured) ...[
+                GoogleButton(
                   label: isSignup
                       ? 'Criar conta com Google'
                       : 'Continuar com Google',
@@ -312,97 +302,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 }
 
 
-/// Google's button, following their branding rules: white surface, neutral
-/// border, and the four-colour G. Drawn in code so there is no image asset
-/// to ship or to go missing in a release build.
-class _GoogleButton extends StatelessWidget {
-  final String label;
-  final VoidCallback? onPressed;
-
-  const _GoogleButton({required this.label, this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white,
-          side: const BorderSide(color: Color(0xFFDADCE0), width: 1.4),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const _GoogleG(size: 20),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: AppTextStyles.bodyLarge.copyWith(
-                color: const Color(0xFF3C4043),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GoogleG extends StatelessWidget {
-  final double size;
-  const _GoogleG({required this.size});
-
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: Size.square(size), painter: _GoogleGPainter());
-}
-
-class _GoogleGPainter extends CustomPainter {
-  static const _blue = Color(0xFF4285F4);
-  static const _green = Color(0xFF34A853);
-  static const _yellow = Color(0xFFFBBC05);
-  static const _red = Color(0xFFEA4335);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width;
-    final stroke = s * 0.22;
-    final rect = Rect.fromLTWH(stroke / 2, stroke / 2, s - stroke, s - stroke);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.butt;
-
-    // Quatro arcos de 90°, começando à direita e girando no sentido horário.
-    void arc(Color color, double startDeg, double sweepDeg) {
-      paint.color = color;
-      canvas.drawArc(
-        rect,
-        startDeg * 3.1415926535 / 180,
-        sweepDeg * 3.1415926535 / 180,
-        false,
-        paint,
-      );
-    }
-
-    arc(_red, -50, 95);
-    arc(_yellow, 45, 90);
-    arc(_green, 135, 95);
-    arc(_blue, -140, 90);
-
-    // A barra horizontal do "G".
-    final bar = Paint()..color = _blue;
-    canvas.drawRect(
-      Rect.fromLTWH(s * 0.5, s * 0.39, s * 0.5 - stroke / 2, stroke),
-      bar,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

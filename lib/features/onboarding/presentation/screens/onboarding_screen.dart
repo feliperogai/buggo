@@ -10,7 +10,9 @@ import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/buggo_button.dart';
 import '../../../../shared/widgets/mascot_widget.dart';
+import '../../../auth/presentation/google_auth_flow.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../auth/presentation/widgets/google_button.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -21,6 +23,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pageCtrl = PageController();
+  final _googleAuth = GoogleAuthFlow();
+  bool _googleBusy = false;
   int _page = 0;
 
   String _name = '';
@@ -70,6 +74,37 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_page == 0) return;
     _pageCtrl.previousPage(
         duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+  }
+
+  /// Mesmo fluxo do botão da tela de login — daí ele viver em GoogleAuthFlow
+  /// e não dentro de uma das telas.
+  Future<void> _signInWithGoogle() async {
+    setState(() => _googleBusy = true);
+    final result = await _googleAuth.run();
+    if (!mounted) return;
+    setState(() => _googleBusy = false);
+    switch (result) {
+      case GoogleAuthSuccess():
+        ref.read(userProvider.notifier).adoptServerProfile(
+              result.profile,
+              carryGuestProgress: result.carryGuestProgress,
+            );
+        context.go(AppRouter.home);
+      case GoogleAuthCanceled():
+        break;
+      case GoogleAuthError(:final message):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Text(message,
+                style:
+                    AppTextStyles.bodyMedium.copyWith(color: Colors.white)),
+          ),
+        );
+    }
   }
 
   void _continueAsGuest() {
@@ -180,6 +215,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       onGuest: _continueAsGuest,
                       onLogin: () => _goToLogin(AuthMode.login),
                       onSignup: () => _goToLogin(AuthMode.signup),
+                      onGoogle:
+                          _googleAuth.isConfigured ? _signInWithGoogle : null,
+                      googleBusy: _googleBusy,
                     ),
                     _NamePage(
                         ctrl: _nameCtrl,
@@ -224,10 +262,17 @@ class _WelcomeChoicePage extends StatelessWidget {
   final VoidCallback onLogin;
   final VoidCallback onSignup;
 
+  /// Nulo quando falta GOOGLE_SERVER_CLIENT_ID no .env: sem ele o botão só
+  /// poderia falhar, então nem aparece.
+  final VoidCallback? onGoogle;
+  final bool googleBusy;
+
   const _WelcomeChoicePage({
     required this.onGuest,
     required this.onLogin,
     required this.onSignup,
+    required this.onGoogle,
+    required this.googleBusy,
   });
 
   @override
@@ -260,6 +305,13 @@ class _WelcomeChoicePage extends StatelessWidget {
             textAlign: TextAlign.center,
           ).animate(delay: 100.ms).fade(),
           const SizedBox(height: 32),
+          if (onGoogle != null) ...[
+            GoogleButton(
+              label: googleBusy ? 'Entrando...' : 'Continuar com Google',
+              onPressed: googleBusy ? null : onGoogle,
+            ).animate(delay: 120.ms).slideY(begin: 0.3, duration: 400.ms).fade(),
+            const SizedBox(height: 12),
+          ],
           BuggoButton(
             label: 'Continuar como convidado',
             icon: Icons.person_outline_rounded,
