@@ -38,12 +38,18 @@ todas as rotas de dados, e o `/api/leaderboard` é público de propósito.
 
 ### Só a main é publicada
 
-`vercel.json` restringe o deploy automático à branch `main`; push em qualquer
-outra branch não gera deployment nenhum:
+`vercel.json` restringe o deploy automático à branch `main`. São duas travas,
+porque a primeira sozinha não segura tudo:
 
 ```json
-"git": { "deploymentEnabled": { "*": false, "main": true } }
+"git": { "deploymentEnabled": { "main": true, "*": false, "*/*": false } },
+"ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]"
 ```
+
+O curinga `*` do `deploymentEnabled` não atravessa barra — uma branch como
+`claude/alguma-coisa` escapava da regra e gerava preview (visto na prática).
+O `ignoreCommand` fecha o buraco: ele sai com 0 (= ignorar o build) em tudo
+que não for `main`, e com 1 (= construir) na `main`.
 
 ### O autor do commit decide se o deploy roda
 
