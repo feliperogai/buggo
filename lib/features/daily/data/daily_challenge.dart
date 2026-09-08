@@ -47,9 +47,14 @@ class DailyChallengeResult {
   final int coinsGranted;
   final bool alreadyClaimed;
 
+  /// Frase da IA corretora dizendo o que faltou (ou o que ficou bom). Só vem
+  /// nos desafios de escrever código.
+  final String? feedback;
+
   const DailyChallengeResult({
     required this.correct,
     required this.coinsGranted,
     required this.alreadyClaimed,
+    this.feedback,
   });
 }

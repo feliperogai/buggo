@@ -8,8 +8,10 @@ import {
   isAnswerCorrect,
   publicChallenge,
   REWARD_COINS,
+  submittedCode,
 } from '../lib/challenge';
 import { generateDailyChallenge, PipelineError } from '../lib/ai/pipeline';
+import { gradeCodeWrite } from '../lib/ai/grade';
 
 /// Desafio do dia, gerado por IA a partir do ponto em que a pessoa está.
 ///
@@ -196,8 +198,35 @@ async function handlePost(
     return;
   }
 
-  if (!isAnswerCorrect(row.payload, body.answer)) {
-    res.status(200).json({ correct: false, coinsGranted: 0 });
+  // Desafio de escrever código não tem gabarito comparável: a correção é a
+  // IA revisora lendo a resposta, depois das exigências objetivas.
+  let correct: boolean;
+  let feedback: string | null = null;
+
+  if (row.payload.type === 'codeWrite') {
+    const code = submittedCode(body.answer);
+    if (code === null) {
+      res.status(400).json({ error: 'Escreva o código antes de enviar.' });
+      return;
+    }
+    try {
+      const grade = await gradeCodeWrite(row.payload, code);
+      correct = grade.passed;
+      feedback = grade.feedback;
+    } catch (_) {
+      // Falha da IA não vira reprovação nem aprovação: nada é creditado e a
+      // pessoa pode tentar de novo.
+      res.status(503).json({
+        error: 'Não foi possível corrigir agora. Tente de novo em instantes.',
+      });
+      return;
+    }
+  } else {
+    correct = isAnswerCorrect(row.payload, body.answer);
+  }
+
+  if (!correct) {
+    res.status(200).json({ correct: false, coinsGranted: 0, feedback });
     return;
   }
 
@@ -219,6 +248,7 @@ async function handlePost(
       correct: true,
       alreadyClaimed: true,
       coinsGranted: 0,
+      feedback,
       profile: current ? rowToProfile(current) : null,
     });
     return;
@@ -234,6 +264,7 @@ async function handlePost(
     correct: true,
     alreadyClaimed: false,
     coinsGranted: coins,
+    feedback,
     profile: rowToProfile(updated[0] as UserRow),
   });
 }

@@ -44,13 +44,40 @@ export interface CodeChallenge {
   correctTokens: string[];
 }
 
-export type Challenge = QuizChallenge | CodeChallenge;
+/// Desafio em que a pessoa **escreve o código**, sem peças prontas.
+///
+/// Não dá para corrigir isso com comparação de texto: `x=1` e `x = 1` são a
+/// mesma resposta, e o mesmo problema tem dezenas de soluções válidas. A
+/// correção é em duas etapas — o que é objetivo fica em `mustContain`, no
+/// código; o resto é a IA revisora lendo a solução (`ai/grade.ts`).
+export interface CodeWriteChallenge {
+  type: 'codeWrite';
+  title: string;
+  description: string;
+  difficulty: Difficulty;
+  question: string;
+  hint: string | null;
+  /// Linguagem para rotular o editor no app.
+  language: string;
+  /// Começo já escrito, para a pessoa não encarar tela vazia. Pode ser ''.
+  starterCode: string;
+  /// Solução de referência. **Nunca sai do servidor** — é o que a IA
+  /// corretora compara, e mandar junto entregaria a resposta.
+  solution: string;
+  /// Exigências objetivas do enunciado ("for", "print"). Conferidas no
+  /// código antes de gastar chamada de IA. Também não saem do servidor:
+  /// seriam um gabarito parcial.
+  mustContain: string[];
+}
+
+export type Challenge = QuizChallenge | CodeChallenge | CodeWriteChallenge;
 
 /// O que vai para o aparelho: tudo, menos o gabarito. A conferência é no
 /// servidor, então mandar a resposta junto seria entregar as moedas.
 export type PublicChallenge =
   | Omit<QuizChallenge, 'correctIndex'>
-  | Omit<CodeChallenge, 'correctTokens'>;
+  | Omit<CodeChallenge, 'correctTokens'>
+  | Omit<CodeWriteChallenge, 'solution' | 'mustContain'>;
 
 export type ValidationResult =
   | { ok: true; challenge: Challenge }
@@ -80,7 +107,7 @@ export function validateChallenge(raw: unknown): ValidationResult {
   const data = raw as Record<string, unknown>;
 
   const type = text(data.type);
-  if (type !== 'quiz' && type !== 'codeChallenge') {
+  if (type !== 'quiz' && type !== 'codeChallenge' && type !== 'codeWrite') {
     return { ok: false, problems: [`type inválido: "${type}"`] };
   }
 
@@ -151,6 +178,53 @@ export function validateChallenge(raw: unknown): ValidationResult {
     };
   }
 
+  if (type === 'codeWrite') {
+    const language = text(data.language);
+    const starterCode = typeof data.starterCode === 'string'
+      ? data.starterCode
+      : '';
+    const solution = typeof data.solution === 'string' ? data.solution : '';
+    const mustContain = Array.isArray(data.mustContain)
+      ? data.mustContain.map((t) => text(t)).filter((t) => t.length > 0)
+      : [];
+
+    if (!language) problems.push('language vazio');
+    if (!solution.trim()) problems.push('sem solução de referência');
+    if (solution.length > 1200) problems.push('solução longa demais');
+    if (starterCode.length > 600) problems.push('starterCode longo demais');
+    if (mustContain.length === 0) {
+      // Sem nenhuma exigência objetiva a correção viraria só opinião da IA.
+      problems.push('sem exigências objetivas em mustContain');
+    }
+    if (mustContain.length > 5) problems.push('mustContain com itens demais');
+
+    // Uma exigência que a própria solução de referência não cumpre reprovaria
+    // qualquer resposta certa.
+    const haystack = solution.toLowerCase();
+    for (const needle of mustContain) {
+      if (!haystack.includes(needle.toLowerCase())) {
+        problems.push(`a solução de referência não contém "${needle}"`);
+      }
+    }
+
+    if (problems.length > 0) return { ok: false, problems };
+    return {
+      ok: true,
+      challenge: {
+        type: 'codeWrite',
+        title,
+        description,
+        difficulty,
+        question,
+        hint,
+        language,
+        starterCode,
+        solution,
+        mustContain,
+      },
+    };
+  }
+
   const codeTemplate = typeof data.codeTemplate === 'string'
     ? data.codeTemplate
     : '';
@@ -217,8 +291,37 @@ export function publicChallenge(challenge: Challenge): PublicChallenge {
     const { correctIndex: _omit, ...rest } = challenge;
     return rest;
   }
+  if (challenge.type === 'codeWrite') {
+    const { solution: _s, mustContain: _m, ...rest } = challenge;
+    return rest;
+  }
   const { correctTokens: _omit, ...rest } = challenge;
   return rest;
+}
+
+/// Extrai o código enviado pelo app, já com teto de tamanho.
+///
+/// O texto vai parar dentro do prompt da IA corretora, então tratar como
+/// dado — e limitado — é o mínimo. Ver `ai/grade.ts`.
+export function submittedCode(answer: unknown): string | null {
+  if (typeof answer !== 'object' || answer === null) return null;
+  const code = (answer as Record<string, unknown>).code;
+  if (typeof code !== 'string') return null;
+  const trimmed = code.trim();
+  if (trimmed.length === 0 || trimmed.length > 4000) return null;
+  return trimmed;
+}
+
+/// Etapa objetiva da correção do código escrito à mão: o enunciado pedia um
+/// laço, tem laço? Roda antes da IA porque é grátis e não tem opinião.
+export function missingRequirements(
+  challenge: CodeWriteChallenge,
+  code: string,
+): string[] {
+  const haystack = code.toLowerCase();
+  return challenge.mustContain.filter(
+    (needle) => !haystack.includes(needle.toLowerCase()),
+  );
 }
 
 /// Confere a resposta enviada pelo app. O gabarito nunca saiu do servidor.
@@ -229,6 +332,9 @@ export function isAnswerCorrect(challenge: Challenge, answer: unknown): boolean 
   if (challenge.type === 'quiz') {
     return data.optionIndex === challenge.correctIndex;
   }
+
+  // codeWrite não passa por aqui: a correção é assíncrona, em `ai/grade.ts`.
+  if (challenge.type === 'codeWrite') return false;
 
   const tokens = Array.isArray(data.tokens) ? data.tokens : null;
   if (tokens === null || tokens.length !== challenge.correctTokens.length) {

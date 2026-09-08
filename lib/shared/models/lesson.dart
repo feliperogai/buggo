@@ -1,4 +1,17 @@
-enum LessonType { explanation, quiz, codeChallenge, dragDrop, fillBlank }
+enum LessonType {
+  explanation,
+  quiz,
+
+  /// Montar código com peças prontas (trilhas do app).
+  codeChallenge,
+
+  /// Escrever o código à mão. Só o desafio do dia usa: a correção é no
+  /// servidor, porque comparar texto reprovaria `x = 1` contra `x=1`.
+  codeWrite,
+
+  dragDrop,
+  fillBlank,
+}
 
 class LessonOption {
   final String text;
@@ -28,6 +41,12 @@ class Lesson {
   final List<String>? correctTokens;
   final String? expectedOutput;
 
+  /// Código já escrito no editor quando a lição é [LessonType.codeWrite].
+  final String? starterCode;
+
+  /// Linguagem mostrada no cabeçalho do editor.
+  final String? codeLanguage;
+
   const Lesson({
     required this.id,
     required this.title,
@@ -45,6 +64,8 @@ class Lesson {
     this.availableTokens,
     this.correctTokens,
     this.expectedOutput,
+    this.starterCode,
+    this.codeLanguage,
   });
 
   /// Monta a lição a partir do JSON do servidor — hoje só o desafio do dia
@@ -61,9 +82,11 @@ class Lesson {
       id: map['id'] as String? ?? 'daily',
       title: map['title'] as String? ?? 'Desafio do dia',
       description: map['description'] as String? ?? '',
-      type: map['type'] == 'codeChallenge'
-          ? LessonType.codeChallenge
-          : LessonType.quiz,
+      type: switch (map['type']) {
+        'codeWrite' => LessonType.codeWrite,
+        'codeChallenge' => LessonType.codeChallenge,
+        _ => LessonType.quiz,
+      },
       question: map['question'] as String?,
       hint: map['hint'] as String?,
       options: rawOptions is List
@@ -75,6 +98,8 @@ class Lesson {
       availableTokens: rawTokens is List
           ? rawTokens.map((t) => '$t').toList(growable: false)
           : null,
+      starterCode: map['starterCode'] as String?,
+      codeLanguage: map['language'] as String?,
       // Prêmio do desafio do dia é moeda, e quem credita é o servidor.
       xpReward: 0,
       coinReward: 0,

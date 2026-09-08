@@ -7,12 +7,12 @@ import {
 } from './client';
 import { Challenge, DIFFICULTIES, validateChallenge } from '../challenge';
 
-/// Tipos que a tela do desafio diário sabe desenhar hoje.
+/// Tipos que a tela do desafio diário sabe desenhar.
 ///
-/// O validador em `challenge.ts` também aceita `codeChallenge`, e o servidor
-/// está pronto para ele — falta a tela no app. Gerar um tipo que o aparelho
-/// não renderiza daria desafio em branco, então a esteira recusa antes.
-const ALLOWED_TYPES: readonly Challenge['type'][] = ['quiz'];
+/// `codeChallenge` (montar com peças prontas) fica de fora de propósito: no
+/// desafio do dia a pessoa escreve o código, e as peças prontas já são o
+/// formato das lições da trilha.
+const ALLOWED_TYPES: readonly Challenge['type'][] = ['quiz', 'codeWrite'];
 
 /// Esteira do desafio do dia: gera, confere no código, revisa com a outra IA.
 ///
@@ -66,6 +66,8 @@ const REVIEWER_SYSTEM = [
   'Reprove se qualquer uma for verdadeira:',
   '- A resposta marcada como correta não é a correta.',
   '- Alguma alternativa errada também poderia ser aceita como certa.',
+  '- Num desafio de escrever código: a "solution" não resolve o enunciado, ou',
+  '  algum item de "mustContain" pode faltar numa resposta correta.',
   '- O código tem erro de sintaxe na linguagem indicada.',
   '- O enunciado depende de assunto fora da lista do que já foi estudado.',
   '- Não está em português do Brasil.',
@@ -77,6 +79,10 @@ const REVIEWER_SYSTEM = [
 
 function generatorPrompt(position: TrackPosition): string {
   const label = labelFor(position.languageId);
+  // Lógica não tem linguagem para escrever código; ali só cabe múltipla
+  // escolha.
+  const codeAllowed = position.languageId !== 'logic' &&
+    ALLOWED_TYPES.includes('codeWrite');
   const covered = position.coveredTitles.length > 0
     ? position.coveredTitles.map((t) => `- ${t}`).join('\n')
     : '- (ainda não concluiu nenhuma lição; use só o básico do assunto)';
@@ -90,17 +96,45 @@ function generatorPrompt(position: TrackPosition): string {
     'Assuntos que ela JÁ estudou e pode usar:',
     covered,
     '',
-    'Escreva UM desafio do dia sobre esses assuntos, neste formato exato:',
+    'Escreva UM desafio do dia sobre esses assuntos. Escolha um dos dois',
+    'formatos e responda exatamente nele.',
+    '',
+    codeAllowed
+      ? 'Prefira o formato "codeWrite": a pessoa escrever o código rende '
+        + 'mais que escolher alternativa. Use "quiz" quando o assunto for '
+        + 'conceito, não escrita de código.'
+      : 'Use o formato "quiz".',
+    '',
+    'A) Múltipla escolha:',
     '{"type":"quiz","title":"...","description":"...",',
     ' "difficulty":"facil|media|dificil","question":"...","hint":"...",',
     ' "options":["...","...","..."],"correctIndex":0}',
     '',
-    'Detalhes que o app exige:',
-    '- title com até 60 caracteres.',
     '- 3 ou 4 alternativas, todas diferentes.',
     '- "correctIndex" é a posição da alternativa certa, começando em 0.',
-    '- Se o enunciado mostrar código, escreva o código dentro do texto da',
-    '  pergunta mesmo.',
+    ...(codeAllowed ? [
+      '',
+      'B) Escrever código à mão:',
+      '{"type":"codeWrite","title":"...","description":"...",',
+      ' "difficulty":"facil|media|dificil","question":"...","hint":"...",',
+      ` "language":"${label}","starterCode":"","solution":"...",`,
+      ' "mustContain":["for","print"]}',
+      '',
+      '- "question" descreve em português o que a pessoa tem que escrever.',
+      '- "solution" é uma resposta correta completa. Ela não é mostrada;',
+      '  serve para corrigir o que a pessoa escrever.',
+      '- "mustContain" são de 1 a 3 trechos que QUALQUER resposta correta',
+      '  precisa conter (uma palavra-chave, um nome de função). Eles são',
+      '  conferidos no texto, então evite algo que possa ser escrito de',
+      '  outra forma. A sua própria "solution" tem que conter todos.',
+      '- "starterCode" pode ser "" ou um começo curto para a pessoa',
+      '  continuar. Não coloque a resposta nele.',
+      '- Peça algo que caiba em poucas linhas: a pessoa vai digitar no',
+      '  celular.',
+    ] : []),
+    '',
+    'Em qualquer formato:',
+    '- title com até 60 caracteres.',
     '- "difficulty" é a sua avaliação do esforço; o prêmio em moedas é',
     '  decidido pelo servidor, não por você.',
   ].join('\n');

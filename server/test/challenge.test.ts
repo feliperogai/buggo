@@ -2,10 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  CodeWriteChallenge,
   DIFFICULTIES,
   isAnswerCorrect,
+  missingRequirements,
   publicChallenge,
   REWARD_COINS,
+  submittedCode,
   validateChallenge,
 } from '../lib/challenge';
 import { parseJsonLoosely } from '../lib/ai/client';
@@ -148,4 +151,94 @@ test('toda dificuldade tem prêmio, e o prêmio é só moeda', () => {
 test('JSON embrulhado em cerca de markdown ainda é lido', () => {
   const parsed = parseJsonLoosely('```json\n{"approved": true}\n```', 'teste');
   assert.deepEqual(parsed, { approved: true });
+});
+
+// ── Desafio de escrever o código à mão ─────────────────────────────────
+
+const goodWrite = {
+  type: 'codeWrite',
+  title: 'Some a lista',
+  description: 'Escreva o código',
+  difficulty: 'media',
+  question: 'Escreva um laço que soma os números de uma lista e imprime o total.',
+  hint: 'Use uma variável acumuladora.',
+  language: 'Python',
+  starterCode: 'numeros = [1, 2, 3]\n',
+  solution: 'numeros = [1, 2, 3]\ntotal = 0\nfor n in numeros:\n    total += n\nprint(total)',
+  mustContain: ['for', 'print'],
+};
+
+function parseWrite(raw: unknown): CodeWriteChallenge {
+  const result = validateChallenge(raw);
+  if (!result.ok) throw new Error(result.problems.join('; '));
+  return result.challenge as CodeWriteChallenge;
+}
+
+test('desafio de escrever código bem formado passa', () => {
+  assert.equal(validateChallenge(goodWrite).ok, true);
+});
+
+test('desafio de escrever sem solução de referência é recusado', () => {
+  assert.equal(validateChallenge({ ...goodWrite, solution: '' }).ok, false);
+});
+
+test('desafio de escrever sem exigência objetiva é recusado', () => {
+  // Sem nada conferível no código, a correção viraria só opinião da IA.
+  assert.equal(validateChallenge({ ...goodWrite, mustContain: [] }).ok, false);
+});
+
+test('exigência que a própria solução não cumpre é recusada', () => {
+  // Reprovaria toda resposta certa, inclusive a de referência.
+  const result = validateChallenge({
+    ...goodWrite,
+    mustContain: ['while'],
+  });
+  assert.equal(result.ok, false);
+  assert.match(
+    result.ok === false ? result.problems.join() : '',
+    /solução de referência/,
+  );
+});
+
+test('nem a solução nem as exigências saem do servidor', () => {
+  const publicView = publicChallenge(parseWrite(goodWrite)) as
+      Record<string, unknown>;
+
+  assert.equal('solution' in publicView, false);
+  assert.equal('mustContain' in publicView, false);
+  // O que a tela precisa continua indo.
+  assert.equal(publicView.language, 'Python');
+  assert.equal(typeof publicView.starterCode, 'string');
+});
+
+test('código escrito não passa pela conferência síncrona', () => {
+  // A correção é assíncrona, em ai/grade.ts. Se este atalho um dia devolver
+  // true, o desafio seria creditado sem ninguém ler a resposta.
+  assert.equal(isAnswerCorrect(parseWrite(goodWrite), { code: 'x' }), false);
+});
+
+test('código enviado é limpo e limitado', () => {
+  assert.equal(submittedCode({ code: '  print(1)  ' }), 'print(1)');
+  assert.equal(submittedCode({ code: '   ' }), null);
+  assert.equal(submittedCode({ code: 'a'.repeat(4001) }), null);
+  assert.equal(submittedCode({ code: 42 }), null);
+  assert.equal(submittedCode({}), null);
+  assert.equal(submittedCode(null), null);
+});
+
+test('exigências objetivas são conferidas sem diferenciar maiúsculas', () => {
+  const challenge = parseWrite(goodWrite);
+
+  assert.deepEqual(
+    missingRequirements(challenge, 'FOR n in x: PRINT(n)'),
+    [],
+  );
+  assert.deepEqual(
+    missingRequirements(challenge, 'total = sum(numeros)'),
+    ['for', 'print'],
+  );
+  assert.deepEqual(
+    missingRequirements(challenge, 'for n in x: pass'),
+    ['print'],
+  );
 });

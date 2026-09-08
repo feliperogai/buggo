@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../shared/models/lesson.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/buggo_button.dart';
 import '../../data/daily_challenge.dart';
@@ -31,17 +32,42 @@ class _DailyChallengeScreenState extends ConsumerState<DailyChallengeScreen> {
   DailyChallengeResult? _result;
   String? _error;
 
+  final _codeController = TextEditingController();
+  bool _codeSeeded = false;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  /// Preenche o editor com o começo que veio do servidor, uma vez só — se
+  /// refizesse a cada build, apagaria o que a pessoa está digitando.
+  void _seedCode(DailyChallenge challenge) {
+    if (_codeSeeded) return;
+    _codeSeeded = true;
+    final starter = challenge.lesson.starterCode;
+    if (starter != null && starter.isNotEmpty) _codeController.text = starter;
+  }
+
   Future<void> _submit(DailyChallenge challenge) async {
-    if (_selected == null || _sending) return;
+    final isCode = challenge.lesson.type == LessonType.codeWrite;
+    final code = _codeController.text.trim();
+    if (_sending) return;
+    if (isCode ? code.isEmpty : _selected == null) return;
+
     setState(() {
       _sending = true;
       _error = null;
     });
 
     try {
-      final (result, profile) = await ref
-          .read(dailyChallengeRepositoryProvider)
-          .submit(challengeId: challenge.id, optionIndex: _selected!);
+      final (result, profile) =
+          await ref.read(dailyChallengeRepositoryProvider).submit(
+                challengeId: challenge.id,
+                optionIndex: isCode ? null : _selected,
+                code: isCode ? code : null,
+              );
 
       if (profile != null) {
         ref.read(userProvider.notifier).saveProfile(profile);
@@ -90,8 +116,10 @@ class _DailyChallengeScreenState extends ConsumerState<DailyChallengeScreen> {
               message: 'Nenhum desafio hoje. Volte amanhã.',
             );
           }
+          _seedCode(challenge);
           return _Body(
             challenge: challenge,
+            codeController: _codeController,
             selected: _selected,
             sending: _sending,
             result: _result,
@@ -108,6 +136,7 @@ class _DailyChallengeScreenState extends ConsumerState<DailyChallengeScreen> {
 
 class _Body extends StatelessWidget {
   final DailyChallenge challenge;
+  final TextEditingController codeController;
   final int? selected;
   final bool sending;
   final DailyChallengeResult? result;
@@ -118,6 +147,7 @@ class _Body extends StatelessWidget {
 
   const _Body({
     required this.challenge,
+    required this.codeController,
     required this.selected,
     required this.sending,
     required this.result,
@@ -131,6 +161,7 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final lesson = challenge.lesson;
     final answered = result != null;
+    final isCode = lesson.type == LessonType.codeWrite;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -158,16 +189,23 @@ class _Body extends StatelessWidget {
             child: Text(lesson.question!, style: AppTextStyles.bodyLarge),
           ),
         const SizedBox(height: 16),
-        for (final entry in lesson.options.asMap().entries)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _OptionTile(
-              text: entry.value.text,
-              isSelected: selected == entry.key,
-              enabled: !answered && !sending,
-              onTap: () => onSelect(entry.key),
+        if (isCode)
+          _CodeEditor(
+            controller: codeController,
+            language: lesson.codeLanguage ?? '',
+            enabled: !answered && !sending,
+          )
+        else
+          for (final entry in lesson.options.asMap().entries)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _OptionTile(
+                text: entry.value.text,
+                isSelected: selected == entry.key,
+                enabled: !answered && !sending,
+                onTap: () => onSelect(entry.key),
+              ),
             ),
-          ),
         if (lesson.hint != null && !answered) ...[
           const SizedBox(height: 4),
           Row(
@@ -191,11 +229,27 @@ class _Body extends StatelessWidget {
         if (answered)
           _ResultCard(result: result!, onClose: onClose)
         else
-          BuggoButton(
-            label: 'Responder',
-            isLoading: sending,
-            onPressed: selected == null ? null : onSubmit,
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: codeController,
+            builder: (context, value, _) {
+              final ready = isCode
+                  ? value.text.trim().isNotEmpty
+                  : selected != null;
+              return BuggoButton(
+                label: isCode ? 'Enviar código' : 'Responder',
+                isLoading: sending,
+                onPressed: ready ? onSubmit : null,
+              );
+            },
           ),
+        if (isCode && sending) ...[
+          const SizedBox(height: 10),
+          Text(
+            'Corrigindo seu código…',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodySmall,
+          ),
+        ],
       ],
     );
   }
@@ -228,6 +282,81 @@ class _RewardBanner extends StatelessWidget {
               style: AppTextStyles.bodyMedium.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Editor simples: fonte monoespaçada, fundo escuro, altura generosa.
+/// Nada de destaque de sintaxe — seriam 16 gramáticas para manter, e o ganho
+/// num campo de poucas linhas no celular é pequeno.
+class _CodeEditor extends StatelessWidget {
+  final TextEditingController controller;
+  final String language;
+  final bool enabled;
+
+  const _CodeEditor({
+    required this.controller,
+    required this.language,
+    required this.enabled,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1720),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2A2434)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+            child: Row(
+              children: [
+                const Icon(Icons.code_rounded,
+                    size: 15, color: Color(0xFF8A8398)),
+                const SizedBox(width: 6),
+                Text(
+                  language.isEmpty ? 'Seu código' : language,
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: const Color(0xFF8A8398)),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+            child: TextField(
+              controller: controller,
+              enabled: enabled,
+              maxLines: null,
+              minLines: 6,
+              autocorrect: false,
+              enableSuggestions: false,
+              keyboardType: TextInputType.multiline,
+              textCapitalization: TextCapitalization.none,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 14,
+                height: 1.5,
+                color: Color(0xFFF5F3FA),
+              ),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                hintText: 'Escreva aqui…',
+                hintStyle: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                  color: Color(0xFF6B6480),
+                ),
               ),
             ),
           ),
@@ -282,9 +411,11 @@ class _ResultCard extends StatelessWidget {
     final correct = result.correct;
     final color = correct ? AppColors.success : AppColors.error;
 
+    // Nos desafios de escrever código a IA corretora manda uma frase dizendo
+    // o que faltou; ela é mais útil que qualquer texto fixo.
     final String message;
     if (!correct) {
-      message = 'Não foi dessa vez. Amanhã tem outro.';
+      message = result.feedback ?? 'Não foi dessa vez. Amanhã tem outro.';
     } else if (result.coinsGranted > 0) {
       message = 'Acertou! +${result.coinsGranted} moedas.';
     } else {

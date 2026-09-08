@@ -63,12 +63,21 @@ class DailyChallengeRepository {
     }
   }
 
-  /// Manda a alternativa escolhida. O servidor confere e credita as moedas.
+  /// Manda a resposta — a alternativa escolhida, ou o código escrito. Quem
+  /// confere e credita as moedas é o servidor; no caso do código, é a IA
+  /// revisora lendo o que a pessoa escreveu.
+  ///
   /// Devolve o resultado e o perfil atualizado, quando houve crédito.
   Future<(DailyChallengeResult, UserProfile?)> submit({
     required String challengeId,
-    required int optionIndex,
+    int? optionIndex,
+    String? code,
   }) async {
+    assert(
+      (optionIndex == null) != (code == null),
+      'mande a alternativa OU o código, nunca os dois',
+    );
+
     final token = await _session.readToken();
     if (token == null) {
       throw DailyChallengeFailure('Entre na sua conta para valer o desafio.');
@@ -85,10 +94,14 @@ class DailyChallengeRepository {
             },
             body: jsonEncode({
               'challengeId': challengeId,
-              'answer': {'optionIndex': optionIndex},
+              'answer': code != null
+                  ? {'code': code}
+                  : {'optionIndex': optionIndex},
             }),
           )
-          .timeout(const Duration(seconds: 20));
+          // Corrigir código passa por uma chamada de IA, então a espera é
+          // maior que a de responder múltipla escolha.
+          .timeout(const Duration(seconds: 45));
     } on SocketException catch (e) {
       throw DailyChallengeFailure(
         'Sem conexão para enviar a resposta (${e.osError?.message ?? e.message}).',
@@ -121,6 +134,7 @@ class DailyChallengeRepository {
         correct: body['correct'] as bool? ?? false,
         coinsGranted: body['coinsGranted'] as int? ?? 0,
         alreadyClaimed: body['alreadyClaimed'] as bool? ?? false,
+        feedback: body['feedback'] as String?,
       ),
       profile is Map<String, dynamic> ? UserProfile.fromMap(profile) : null,
     );

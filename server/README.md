@@ -95,6 +95,30 @@ lugares diferentes. Sem a chave do revisor nada vai ao ar: publicar direto o
 que um modelo escreveu, com moeda no fim, é o que a revisão existe para
 evitar.
 
+**Dois formatos.** O preferido é a pessoa **escrever o código à mão**
+(`codeWrite`); múltipla escolha (`quiz`) fica para quando o assunto é
+conceito, e é o único formato possível na trilha de lógica, que não tem
+linguagem.
+
+Código escrito não dá para corrigir comparando texto: `x = 1` e `x=1` são a
+mesma resposta, e o mesmo problema tem dezenas de soluções válidas. A
+correção é em duas etapas (`lib/ai/grade.ts`):
+
+1. **`mustContain`**, no código. O gerador declara de 1 a 3 trechos que
+   qualquer resposta certa precisa ter ("for", "print"). Falta um, reprova
+   sem gastar chamada. A validação recusa uma exigência que a própria solução
+   de referência não cumpra — isso reprovaria toda resposta correta.
+2. **A IA revisora lê a solução**, com o enunciado e a resposta de
+   referência, e aprova quem resolveu de outro jeito.
+
+Nem a solução nem o `mustContain` saem do servidor: seriam gabarito.
+
+O código enviado é entrada não confiável indo para dentro de um prompt. Vai
+delimitado e anunciado como dado, com teto de 4000 caracteres, e o corretor é
+instruído a ignorar instrução vinda dali. Mesmo que alguém force um "passou",
+o prejuízo é o prêmio de um dia: o valor sai da tabela e o resgate é um por
+dia.
+
 **A esteira, nessa ordem** (`lib/ai/pipeline.ts`):
 
 1. **Gera** com o DeepSeek, usando só o assunto que a pessoa já estudou.
@@ -133,8 +157,11 @@ realmente abriu.
 - `GET /api/daily-challenge` — desafio de hoje, gerando na primeira vez que
   alguém daquela combinação pede. Responde `challenge: null` quando não há
   (sem chaves, geração falhou), e o app só não mostra o cartão.
-- `POST /api/daily-challenge` — `{ challengeId, answer: { optionIndex } }` →
-  `{ correct, coinsGranted, alreadyClaimed, profile }`.
+- `POST /api/daily-challenge` — `{ challengeId, answer }`, com
+  `answer: { optionIndex }` no quiz ou `answer: { code }` no desafio de
+  escrever → `{ correct, coinsGranted, alreadyClaimed, feedback, profile }`.
+  O `feedback` é a frase da IA corretora dizendo o que faltou. Se a correção
+  falhar, responde 503 e **nada é creditado** — a pessoa tenta de novo.
 
 ### Para ligar
 
