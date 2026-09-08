@@ -84,6 +84,75 @@ git config user.email "contact@caspheon.com"
   opcional desligado vira aviso, não falha. De quebra, é o que mantém o
   gráfico com pontos mesmo quando ninguém está com a página aberta.
 
+## Desafio do dia (duas IAs)
+
+Um exercício por dia, gerado sob medida para a trilha e o ponto em que a
+pessoa está. Acertar paga **moedas** — XP continua sendo só dos módulos.
+
+**Duas IAs, de casas diferentes.** DeepSeek escreve, OpenAI revisa. Modelo que
+revisa a si mesmo concorda consigo mesmo; provedores diferentes erram em
+lugares diferentes. Sem a chave do revisor nada vai ao ar: publicar direto o
+que um modelo escreveu, com moeda no fim, é o que a revisão existe para
+evitar.
+
+**A esteira, nessa ordem** (`lib/ai/pipeline.ts`):
+
+1. **Gera** com o DeepSeek, usando só o assunto que a pessoa já estudou.
+2. **Valida no código** (`lib/challenge.ts`): formato, tamanho, uma resposta
+   certa só, alternativas diferentes, gabarito dentro do intervalo. Nada
+   disso passa por IA — o que um `for` confere não pode depender de um modelo
+   dizer que está tudo bem.
+3. **Revisa** com a OpenAI, que responde só o que código não responde: a
+   resposta marcada é mesmo a certa? Alguma errada também estaria certa? Está
+   em português? É adequado para adolescente? Reprovado não entra.
+4. Uma segunda tentativa, e só. Falhou duas vezes, o app não mostra o cartão
+   hoje — melhor sem desafio que com desafio que ninguém conferiu.
+
+**Três travas que protegem a economia:**
+
+- **A IA não decide o prêmio.** Ela classifica a dificuldade; a tabela
+  `REWARD_COINS`, que é código, vira moeda. Moeda tem preço em real na Play
+  Store.
+- **O gabarito não sai do servidor.** O app recebe o enunciado sem a resposta
+  e manda a alternativa escolhida; a conferência é no `POST`.
+- **Um resgate por dia.** A chave primária de `daily_completions` é
+  `(user_id, challenge_date)` — reenviar não credita de novo, mesma ideia do
+  `purchase_token`.
+
+**Nada vem do app.** Linguagem e progresso saem da linha do usuário no banco.
+Um APK modificado não consegue se declarar mais avançado para pegar desafio
+mais caro.
+
+**Custo.** O desafio é por combinação linguagem+nível, não por pessoa: quem
+estuda Rust e está no mesmo ponto recebe o mesmo desafio. No pior caso são 34
+gerações por dia (uma por nível do app), e só das combinações que alguém
+realmente abriu.
+
+### Endpoints
+
+- `GET /api/daily-challenge` — desafio de hoje, gerando na primeira vez que
+  alguém daquela combinação pede. Responde `challenge: null` quando não há
+  (sem chaves, geração falhou), e o app só não mostra o cartão.
+- `POST /api/daily-challenge` — `{ challengeId, answer: { optionIndex } }` →
+  `{ correct, coinsGranted, alreadyClaimed, profile }`.
+
+### Para ligar
+
+1. Rode o último bloco de `schema.sql` no Neon (`daily_challenges` e
+   `daily_completions`).
+2. Ponha `DEEPSEEK_API_KEY` e `OPENAI_API_KEY` nas env vars da Vercel e
+   refaça o deploy.
+3. Confira em <https://buggo-api.vercel.app/> — a linha "Desafio do dia (IA)"
+   mostra quais modelos estão em uso e quantos desafios já saíram hoje.
+
+O esqueleto das trilhas que o servidor usa para montar o prompt fica em
+`lib/curriculum-outline.ts` e é **gerado**. Depois de mexer no conteúdo do
+app:
+
+```bash
+python3 tool/build_curriculum_outline.py
+```
+
 ## Desenvolvimento local
 
 ```bash
@@ -92,7 +161,12 @@ npm install
 cp .env.example .env   # preencha com um DATABASE_URL de teste
 npm run dev             # roda `vercel dev`, exige `vercel login` antes
 npm run typecheck
+npm test                # validação do desafio e leitura do progresso
 ```
+
+Os testes do servidor não chamam IA nem banco: exercitam o validador
+determinístico, o cálculo de até onde a pessoa foi e a garantia de que o
+gabarito não vaza na resposta.
 
 ## Endpoints
 
@@ -106,6 +180,7 @@ npm run typecheck
   completo
 - `GET /api/leaderboard?by=xp|streak&limit=20` — público
 - `GET /api/health` — público; estado de cada dependência do servidor
+- `GET/POST /api/daily-challenge` — header `Authorization: Bearer <token>`; desafio do dia e resgate
 
 ## Endpoints novos
 

@@ -5,6 +5,7 @@ import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/levels/presentation/screens/level_map_screen.dart';
 import '../../features/challenges/presentation/screens/challenge_screen.dart';
+import '../../features/daily/presentation/screens/daily_challenge_screen.dart';
 import '../../features/challenges/presentation/screens/success_screen.dart';
 import '../../features/achievements/presentation/screens/achievements_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -33,6 +34,7 @@ class AppRouter {
   static const String coins = '/coins';
   static const String hearts = '/hearts';
   static const String achievements = '/achievements';
+  static const String daily = '/daily';
 
   static final GoRouter router = GoRouter(
     initialLocation: splash,
@@ -72,6 +74,11 @@ class AppRouter {
         path: achievements,
         pageBuilder: (context, state) =>
             _slidePage(state, const AchievementsScreen()),
+      ),
+      GoRoute(
+        path: daily,
+        pageBuilder: (context, state) =>
+            _slidePage(state, const DailyChallengeScreen()),
       ),
       ShellRoute(
         builder: (context, state, child) => MainNavigationShell(

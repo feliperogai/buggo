@@ -89,5 +89,6 @@ GoogleService-Info.plist
 # ── Backend (server/) ───────────────────────────────────────────────────────
 server/node_modules/
 server/.vercel/
+server/.test-out/
 server/dist/
 

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
 import { isDatabaseConfigured, sql } from '../lib/db';
+import { generatorProvider, reviewerProvider } from '../lib/ai/client';
 
 /// Monitor do backend: diz, em JSON, se cada peça do servidor está de pé.
 ///
@@ -189,6 +190,80 @@ function checkGoogleLogin(): Check {
   };
 }
 
+/// Desafio do dia: precisa das duas IAs e das duas tabelas. Opcional — sem
+/// isso o app só não mostra o cartão do desafio.
+async function checkDailyChallenge(databaseUp: boolean): Promise<Check> {
+  const base: Omit<Check, 'status' | 'detail'> = {
+    id: 'daily_challenge',
+    label: 'Desafio do dia (IA)',
+    required: false,
+  };
+
+  const generator = generatorProvider();
+  const reviewer = reviewerProvider();
+  const missing = [
+    generator ? null : 'DEEPSEEK_API_KEY',
+    reviewer ? null : 'OPENAI_API_KEY',
+  ].filter((name): name is string => name !== null);
+
+  if (missing.length > 0) {
+    return {
+      ...base,
+      status: 'off',
+      detail: `${missing.join(' e ')} ausente(s): o desafio do dia não é gerado.`,
+    };
+  }
+
+  if (!databaseUp) {
+    return {
+      ...base,
+      status: 'off',
+      detail: 'Chaves definidas, mas o banco não respondeu para checar as tabelas.',
+    };
+  }
+
+  try {
+    const rows = await sql`
+      select
+        to_regclass('public.daily_challenges') is not null as challenges,
+        to_regclass('public.daily_completions') is not null as completions
+    `;
+    const row = rows[0] as { challenges: boolean; completions: boolean };
+    const absent = [
+      row.challenges ? null : 'daily_challenges',
+      row.completions ? null : 'daily_completions',
+    ].filter((name): name is string => name !== null);
+
+    if (absent.length > 0) {
+      return {
+        ...base,
+        status: 'fail',
+        detail: `Faltando: ${absent.join(', ')}. Rode o bloco final de `
+          + 'server/schema.sql no SQL Editor do Neon.',
+      };
+    }
+
+    const today = await sql`
+      select count(*)::int as total from daily_challenges
+      where challenge_date = current_date
+    `;
+    const total = (today[0] as { total: number }).total;
+    return {
+      ...base,
+      status: 'ok',
+      detail: `${generator!.name}:${generator!.model} gera, `
+        + `${reviewer!.name}:${reviewer!.model} revisa · `
+        + `${total} desafio(s) preparado(s) hoje.`,
+    };
+  } catch (error) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `Não foi possível checar as tabelas: ${messageOf(error)}`,
+    };
+  }
+}
+
 /// A chave da service account é o ponto onde compras costumam quebrar sem
 /// aviso, então aqui ela é realmente lida, não só checada por existir.
 function checkPurchases(): Check {
@@ -294,12 +369,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const started = Date.now();
+  const databaseChecks = await checkDatabase();
+  const databaseUp = databaseChecks.every((c) => c.status === 'ok');
   const checks: Check[] = [
-    ...(await checkDatabase()),
+    ...databaseChecks,
     checkAuth(),
     checkEmail(),
     checkGoogleLogin(),
     checkPurchases(),
+    await checkDailyChallenge(databaseUp),
   ];
 
   const broken = checks.filter((c) => c.status === 'fail');

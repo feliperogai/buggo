@@ -5,7 +5,8 @@
   "description": "Protected API in front of Neon Postgres for the Buggo app (auth, profile sync, leaderboard).",
   "scripts": {
     "dev": "vercel dev",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --test \".test-out/test/*.test.js\""
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.5",

@@ -46,6 +46,40 @@ class Lesson {
     this.correctTokens,
     this.expectedOutput,
   });
+
+  /// Monta a lição a partir do JSON do servidor — hoje só o desafio do dia
+  /// chega por aí; as trilhas continuam sendo constantes de compilação.
+  ///
+  /// O gabarito não vem: o servidor confere a resposta e credita as moedas.
+  /// Por isso `options` chega como lista de texto, sem `isCorrect`, e
+  /// `correctTokens` fica nulo.
+  factory Lesson.fromMap(Map<dynamic, dynamic> map) {
+    final rawOptions = map['options'];
+    final rawTokens = map['availableTokens'];
+
+    return Lesson(
+      id: map['id'] as String? ?? 'daily',
+      title: map['title'] as String? ?? 'Desafio do dia',
+      description: map['description'] as String? ?? '',
+      type: map['type'] == 'codeChallenge'
+          ? LessonType.codeChallenge
+          : LessonType.quiz,
+      question: map['question'] as String?,
+      hint: map['hint'] as String?,
+      options: rawOptions is List
+          ? rawOptions
+              .map((o) => LessonOption(text: '$o', isCorrect: false))
+              .toList(growable: false)
+          : const [],
+      codeTemplate: map['codeTemplate'] as String?,
+      availableTokens: rawTokens is List
+          ? rawTokens.map((t) => '$t').toList(growable: false)
+          : null,
+      // Prêmio do desafio do dia é moeda, e quem credita é o servidor.
+      xpReward: 0,
+      coinReward: 0,
+    );
+  }
 }
 
 class CourseLevel {

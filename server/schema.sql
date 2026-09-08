@@ -85,3 +85,44 @@ create table if not exists health_samples (
 );
 
 create index if not exists health_samples_bucket_idx on health_samples (bucket desc);
+
+-- ── Desafio diário gerado por IA ─────────────────────────────────────────
+-- Rode este bloco no SQL Editor do Neon. É idempotente.
+--
+-- O desafio é personalizado pela trilha e pelo ponto em que a pessoa está,
+-- não por pessoa: quem estuda Rust e terminou o nível 1 recebe o mesmo
+-- desafio de quem está no mesmo lugar. Isso mantém a geração limitada (uma
+-- por combinação por dia, no pior caso) e ainda permite comparar quem
+-- resolveu.
+create table if not exists daily_challenges (
+  id uuid primary key default gen_random_uuid(),
+  challenge_date date not null,
+  language_id text not null,
+  stage int4 not null,
+  difficulty text not null check (difficulty in ('facil', 'media', 'dificil')),
+  -- Enunciado, alternativas e gabarito. O gabarito nunca sai daqui: a
+  -- resposta é conferida no servidor.
+  payload jsonb not null,
+  generator_model text not null,
+  reviewer_model text,
+  review_notes text,
+  created_at timestamptz not null default now(),
+  unique (challenge_date, language_id, stage)
+);
+
+create index if not exists daily_challenges_lookup_idx
+  on daily_challenges (challenge_date, language_id, stage);
+
+-- Um resgate por pessoa por dia. A chave primária é o que impede farmar
+-- moedas reenviando a mesma resposta — mesma ideia do purchase_token.
+create table if not exists daily_completions (
+  user_id uuid not null references users(id) on delete cascade,
+  challenge_date date not null,
+  challenge_id uuid not null references daily_challenges(id) on delete cascade,
+  coins_granted int4 not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, challenge_date)
+);
+
+create index if not exists daily_completions_user_idx
+  on daily_completions (user_id, challenge_date desc);

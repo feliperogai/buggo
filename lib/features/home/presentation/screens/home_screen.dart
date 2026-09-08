@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../data/content/curriculum.dart';
+import '../../../daily/data/daily_providers.dart';
 import '../../../../shared/constants/learning_languages.dart';
 import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
@@ -45,6 +46,26 @@ class HomeScreen extends ConsumerWidget {
               onCoinsTap: () => context.push(AppRouter.coins),
               onLivesTap: () => context.push(AppRouter.hearts),
             ),
+          ),
+
+          // Desafio do dia. Só aparece quando o servidor tem um pronto: sem
+          // conta, sem IA configurada ou com a geração falhando, o cartão
+          // some em vez de mostrar um desafio vazio.
+          SliverToBoxAdapter(
+            child: ref.watch(dailyChallengeProvider).maybeWhen(
+                  data: (challenge) => challenge == null
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                          child: _DailyChallengeCard(
+                            rewardCoins: challenge.rewardCoins,
+                            alreadyClaimed: challenge.alreadyClaimed,
+                            title: challenge.lesson.title,
+                            onTap: () => context.push(AppRouter.daily),
+                          ),
+                        ),
+                  orElse: () => const SizedBox.shrink(),
+                ),
           ),
 
           SliverToBoxAdapter(
@@ -124,6 +145,78 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// Cartão do desafio do dia na tela inicial.
+class _DailyChallengeCard extends StatelessWidget {
+  final int rewardCoins;
+  final bool alreadyClaimed;
+  final String title;
+  final VoidCallback onTap;
+
+  const _DailyChallengeCard({
+    required this.rewardCoins,
+    required this.alreadyClaimed,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: const Icon(Icons.bolt_rounded, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Desafio do dia',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    alreadyClaimed ? title : '$title · $rewardCoins moedas',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              alreadyClaimed
+                  ? Icons.check_circle_rounded
+                  : Icons.chevron_right_rounded,
+              color: Colors.white,
+            ),
+          ],
+        ),
+      ),
+    ).animate().fade(duration: 260.ms).slideY(begin: 0.15);
   }
 }
 
