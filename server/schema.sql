@@ -65,3 +65,23 @@ create table if not exists purchases (
 );
 
 create index if not exists purchases_user_idx on purchases (user_id);
+
+-- ── Histórico do monitor ─────────────────────────────────────────────────
+-- Rode este bloco no SQL Editor do Neon. É idempotente.
+--
+-- Uma linha por minuto, no máximo: a chave primária é o minuto arredondado,
+-- e /api/health insere com "on conflict do nothing". Assim o gráfico tem
+-- histórico de verdade (inclusive de quando ninguém está olhando, graças à
+-- checagem de hora em hora do GitHub Actions) sem que um monte de acessos
+-- à página vire um monte de escrita no banco.
+--
+-- Sem esta tabela o monitor continua funcionando: ele só mostra o gráfico
+-- vazio e avisa que o histórico não está disponível.
+create table if not exists health_samples (
+  bucket timestamptz primary key,
+  status text not null,
+  total_ms int4 not null,
+  db_ms int4
+);
+
+create index if not exists health_samples_bucket_idx on health_samples (bucket desc);

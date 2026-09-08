@@ -83,6 +83,7 @@ Sem nenhum dos dois, o app usa a URL de produção embutida em
 
 ## Monitor do servidor
 
-- Página: <https://buggo-api.vercel.app/status.html>
+- Página: <https://buggo-api.vercel.app/> — estado atual, gráfico de tempo de
+  resposta e faixa de disponibilidade
 - JSON: `GET /api/health`
 - Checagem automática de hora em hora: `.github/workflows/monitor.yml`

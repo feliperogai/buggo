@@ -8,5 +8,8 @@
       "*/*/*": false
     }
   },
-  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]"
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]",
+  "redirects": [
+    { "source": "/status.html", "destination": "/", "permanent": true }
+  ]
 }

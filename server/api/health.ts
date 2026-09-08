@@ -10,7 +10,7 @@ import { isDatabaseConfigured, sql } from '../lib/db';
 /// exatamente isso que estava impedindo o app de funcionar.
 ///
 /// Nenhum valor de variável de ambiente é exposto, só se está definida.
-/// A página em `/status.html` é a leitura visual desta resposta.
+/// A página na raiz do domínio (`/`) é a leitura visual desta resposta.
 
 type CheckStatus = 'ok' | 'fail' | 'off';
 
@@ -217,6 +217,66 @@ function checkPurchases(): Check {
   }
 }
 
+interface Sample {
+  at: string;
+  status: string;
+  totalMs: number;
+  dbMs: number | null;
+}
+
+/// Grava a checagem e devolve as últimas [limit] amostras, em ordem
+/// cronológica. É o que dá ao monitor um gráfico com histórico de verdade,
+/// em vez de só o instante em que a página foi aberta.
+///
+/// A chave primária de `health_samples` é o minuto arredondado, então o
+/// `on conflict do nothing` garante no máximo uma linha por minuto por mais
+/// que a página (ou qualquer um) consulte a rota.
+///
+/// Nada aqui pode derrubar a resposta: se a tabela ainda não existe — ela é
+/// o último bloco de schema.sql — o monitor mostra o gráfico vazio e diz o
+/// porquê.
+async function recordAndRead(
+  status: string,
+  totalMs: number,
+  dbMs: number | null,
+  limit: number,
+): Promise<{ samples: Sample[]; note: string | null }> {
+  try {
+    await sql`
+      insert into health_samples (bucket, status, total_ms, db_ms)
+      values (date_trunc('minute', now()), ${status}, ${totalMs}, ${dbMs})
+      on conflict (bucket) do nothing
+    `;
+
+    // Uma vez por hora basta para o histórico não crescer sem fim.
+    if (new Date().getUTCMinutes() === 0) {
+      await sql`delete from health_samples where bucket < now() - interval '7 days'`;
+    }
+
+    const rows = await sql`
+      select bucket, status, total_ms, db_ms
+      from health_samples
+      order by bucket desc
+      limit ${limit}
+    `;
+    const samples = rows
+      .map((row) => ({
+        at: new Date(row.bucket as string | number | Date).toISOString(),
+        status: row.status as string,
+        totalMs: row.total_ms as number,
+        dbMs: (row.db_ms as number | null) ?? null,
+      }))
+      .reverse();
+    return { samples, note: null };
+  } catch (error) {
+    return {
+      samples: [],
+      note: `Histórico indisponível (${messageOf(error)}). `
+        + 'Rode o bloco final de server/schema.sql no SQL Editor do Neon.',
+    };
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // A página de status é servida da mesma origem, mas liberar a leitura
   // permite apontar qualquer monitor externo para cá.
@@ -249,6 +309,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? 'ok'
       : 'degraded';
 
+  // Duração só das checagens — medida antes de mexer no histórico, senão o
+  // gráfico estaria medindo a si mesmo.
+  const durationMs = Date.now() - started;
+  const dbCheck = checks.find((c) => c.id === 'database');
+  const dbMs = dbCheck?.durationMs ?? null;
+
+  // `?history=0` pula a leitura (o job do GitHub Actions não precisa dela).
+  const requested = Number(req.query.history);
+  const limit = Number.isFinite(requested)
+    ? Math.min(Math.max(requested, 0), 500)
+    : 120;
+  const history =
+    limit > 0 && dbCheck?.status === 'ok'
+      ? await recordAndRead(status, durationMs, dbMs, limit)
+      : { samples: [], note: null };
+
   res.status(status === 'down' ? 503 : 200).json({
     status,
     // Resumo em uma linha, para quem só olha o topo da resposta.
@@ -259,11 +335,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ? `${checks.filter((c) => c.status !== 'ok').length} item(ns) fora do ar, nenhum essencial.`
           : `${broken.filter((c) => c.required).length} item(ns) essencial(is) fora do ar.`,
     checkedAt: new Date().toISOString(),
-    durationMs: Date.now() - started,
+    durationMs,
     environment: process.env.VERCEL_ENV ?? 'desconhecido',
     region: process.env.VERCEL_REGION ?? null,
     commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
     branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
     checks,
+    history: history.samples,
+    historyNote: history.note,
   });
 }

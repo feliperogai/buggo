@@ -64,16 +64,25 @@ git config user.email "contact@caspheon.com"
 
 ## Monitor
 
-- **Página**: <https://buggo-api.vercel.app/status.html> — mostra cada peça do
-  servidor (banco, tabelas, JWT, e-mail, login Google, compras), atualiza
+- **Página**: <https://buggo-api.vercel.app/> — a raiz do domínio é o monitor.
+  Traz o estado atual, o gráfico de tempo de resposta (total e banco, as duas
+  séries em milissegundos no mesmo eixo), a faixa de disponibilidade amostra a
+  amostra, cada peça do servidor e o mesmo histórico em tabela. Atualiza
   sozinha a cada 30s e diz explicitamente quando o que voltou foi a tela de
   login da Vercel.
 - **Rota**: `GET /api/health` → JSON com `status` (`ok` | `degraded` | `down`),
-  `summary` e a lista de checagens. Responde 503 quando algo essencial caiu.
-  Não expõe valor de variável nenhuma, só se está definida.
+  `summary`, a lista de checagens e o histórico recente. Responde 503 quando
+  algo essencial caiu. Não expõe valor de variável nenhuma, só se está
+  definida. `?history=0` pula o histórico; `?history=N` pede N amostras.
+- **Histórico**: cada chamada grava no máximo uma linha por minuto em
+  `health_samples` (a chave primária é o minuto arredondado, então acesso
+  repetido à página não vira escrita repetida), e linhas com mais de 7 dias
+  são apagadas. Sem a tabela — é o último bloco de `schema.sql` — o monitor
+  continua de pé, só sem gráfico.
 - **Automático**: `.github/workflows/monitor.yml` consulta a rota de hora em
   hora e falha o job (e-mail do GitHub) quando o `status` é `down`. Recurso
-  opcional desligado vira aviso, não falha.
+  opcional desligado vira aviso, não falha. De quebra, é o que mantém o
+  gráfico com pontos mesmo quando ninguém está com a página aberta.
 
 ## Desenvolvimento local
 
