@@ -33,8 +33,12 @@ function getClient(): JWT {
 
   cachedClient = new JWT({
     email: credentials.client_email,
-    // Vercel env vars keep "\n" literal; the PEM needs real newlines.
-    key: credentials.private_key.replace(/\n/g, '\n'),
+    // O PEM precisa de quebras de linha reais. Quando a chave chega com as
+    // quebras escapadas (barra + n), é aqui que elas viram newline — o padrão
+    // tem que ser a barra escapada; com /\n/ a troca seria de newline por
+    // newline, ou seja, nada. Se a chave já vier com quebras reais, o replace
+    // simplesmente não encontra nada e a deixa intacta.
+    key: credentials.private_key.replace(/\\n/g, '\n'),
     scopes: [SCOPE],
   });
   return cachedClient;

@@ -8,6 +8,7 @@ import '../../../../core/bootstrap.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/settings_provider.dart';
 import '../../../../shared/providers/user_provider.dart';
 
@@ -51,10 +52,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _navigated = true;
     await _bootstrapFuture;
     if (!mounted) return;
-    // Primeira leitura do provider: aplica no SoundService as preferências
-    // de som/vibração salvas, antes de qualquer tela poder tocar algo.
-    ref.read(settingsProvider);
-    final user = ref.read(userProvider);
+
+    // Ler os providers pode falhar se o bootstrap tiver degradado (uma box do
+    // Hive que não abriu, por exemplo). Isso não pode prender o usuário na
+    // splash para sempre: na dúvida, segue para o onboarding.
+    UserProfile? user;
+    try {
+      // Primeira leitura do provider: aplica no SoundService as preferências
+      // de som/vibração salvas, antes de qualquer tela poder tocar algo.
+      ref.read(settingsProvider);
+      user = ref.read(userProvider);
+    } catch (e) {
+      debugPrint('splash: não foi possível ler o perfil salvo: $e');
+    }
+
+    if (!mounted) return;
     context.go(user != null ? AppRouter.home : AppRouter.onboarding);
   }
 

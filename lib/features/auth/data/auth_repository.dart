@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/config/env_config.dart';
+import '../../../core/net/server_diagnostics.dart';
 import '../../../shared/models/user_profile.dart';
 import 'auth_session.dart';
 
@@ -49,7 +50,7 @@ class AuthRepository {
   Future<http.Response> _send(Future<http.Response> Function() call) async {
     if (!isConfigured) {
       throw AuthException(
-        'App sem API_BASE_URL: o .env não foi embutido nesta build.',
+        'Esta build não tem URL de API para chamar.',
       );
     }
     try {
@@ -67,14 +68,16 @@ class AuthRepository {
     }
   }
 
-  /// Decodes a JSON body, reporting the HTTP status when the server answered
-  /// with something that isn't JSON (a Vercel error page, for instance).
+  /// Decodes a JSON body. Quando o servidor não respondeu JSON,
+  /// [ServerDiagnostics] nomeia o motivo — foi assim que a Deployment
+  /// Protection da Vercel deixou de aparecer como um 'erro inesperado'.
   Map<String, dynamic> _decode(http.Response response) {
     try {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } catch (_) {
       throw AuthException(
-        'Resposta inesperada do servidor (HTTP ${response.statusCode}).',
+        ServerDiagnostics.describeNonJson(response) ??
+            'Resposta inesperada do servidor (HTTP ${response.statusCode}).',
       );
     }
   }
@@ -162,7 +165,13 @@ class AuthRepository {
         headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 401) {
-        await _session.clearToken();
+        // Só descarta o token quando o 401 veio da nossa API (JSON). Um 401
+        // em HTML é um muro na frente do servidor (Deployment Protection,
+        // proxy, portal de wi-fi) e deslogar por causa dele tiraria da conta
+        // gente com sessão perfeitamente válida.
+        if (ServerDiagnostics.describeNonJson(response) == null) {
+          await _session.clearToken();
+        }
         return null;
       }
       if (response.statusCode >= 400) return null;

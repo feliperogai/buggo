@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:buggo/core/config/env_config.dart';
 import 'package:buggo/features/auth/data/auth_repository.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,12 +61,17 @@ void main() {
       expect(e.toString(), contains('token'));
     });
 
-    test('sem API_BASE_URL a mensagem aponta o .env, não a internet', () async {
-      dotenv.loadFromString(envString: 'API_BASE_URL=');
-      final e = await loginError(repoThatReturns(http.Response('{}', 200)));
+    test('muro de autenticação da Vercel é nomeado, não vira erro genérico',
+        () async {
+      final repo = repoThatReturns(http.Response(
+        '<html><body>Authentication Required</body></html>',
+        401,
+        headers: {'content-type': 'text/html; charset=utf-8'},
+      ));
+      final e = await loginError(repo);
       expect(e, isA<AuthException>());
       expect(e, isNot(isA<NetworkException>()));
-      expect(e.toString(), contains('.env'));
+      expect(e.toString(), contains('Deployment Protection'));
     });
   });
 
@@ -81,6 +87,18 @@ void main() {
       final e = await loginError(repoThatThrows(http.ClientException('reset')));
       expect(e, isA<NetworkException>());
     });
+  });
+
+  test('.env vazio cai na URL de produção em vez de desligar a API', () async {
+    dotenv.loadFromString(envString: 'API_BASE_URL=');
+    late Uri seen;
+    final repo = AuthRepository(client: MockClient((req) async {
+      seen = req.url;
+      return http.Response(jsonEncode({'error': 'x'}), 401);
+    }));
+    await loginError(repo);
+    expect(seen.toString(),
+        '${EnvConfig.defaultApiBaseUrl}/api/auth/login');
   });
 
   test('a barra final do API_BASE_URL não duplica na URL', () async {

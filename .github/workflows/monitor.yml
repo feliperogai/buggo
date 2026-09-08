@@ -1,0 +1,75 @@
+name: Monitor da API
+
+# Bate em /api/health de hora em hora e falha o job quando alguma peça
+# essencial do servidor está fora do ar — o GitHub avisa a falha por e-mail.
+# É a metade automática do monitor; a visual é https://buggo-api.vercel.app/status.html
+#
+# Duas coisas para saber ao mexer aqui:
+# - workflow agendado só roda a partir da branch padrão (main).
+# - repositório privado gasta minutos de Actions: de hora em hora dá ~720
+#   min/mês (cada execução é cobrada como 1 minuto). Para gastar menos,
+#   troque o cron por '0 */3 * * *'.
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar /api/health
+        env:
+          # Variável de repositório (Settings > Secrets and variables >
+          # Actions > Variables). Sem ela, usa a URL de produção.
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'https://buggo-api.vercel.app' }}
+        run: |
+          set -uo pipefail
+          url="${API_BASE_URL%/}/api/health"
+          echo "GET $url"
+
+          code=$(curl -sS -m 30 -o response.json -w '%{http_code}' "$url")
+          curl_exit=$?
+          if [ $curl_exit -ne 0 ]; then
+            echo "::error::Servidor inacessível ($url) — curl saiu com $curl_exit"
+            echo "### ❌ Servidor inacessível" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          echo "HTTP $code"
+          cat response.json
+          echo
+
+          status=$(jq -r '.status // empty' response.json 2>/dev/null || true)
+          if [ -z "$status" ]; then
+            echo "::error::Resposta não é JSON (HTTP $code). Página HTML aqui quase sempre é a Deployment Protection da Vercel, que também bloqueia o app."
+            echo "### ❌ Resposta inválida (HTTP $code)" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          summary=$(jq -r '.summary // ""' response.json)
+          {
+            echo "### Status: \`$status\` — $summary"
+            echo
+            echo "| Item | Estado | Detalhe |"
+            echo "|---|---|---|"
+            jq -r '.checks[] | "| \(.label) | \(.status) | \(.detail) |"' response.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          case "$status" in
+            ok)
+              echo "Tudo funcionando."
+              ;;
+            degraded)
+              # Recurso opcional desligado não é incidente: avisa, não falha.
+              echo "::warning::$summary"
+              ;;
+            *)
+              echo "::error::$summary"
+              exit 1
+              ;;
+          esac

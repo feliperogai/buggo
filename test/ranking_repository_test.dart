@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:buggo/core/config/env_config.dart';
 import 'package:buggo/features/ranking/data/ranking_repository.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -85,14 +86,30 @@ void main() {
       expect(await errorFrom(repo), isA<RankingUnavailable>());
     });
 
-    test('sem API_BASE_URL a mensagem aponta o .env', () async {
-      dotenv.loadFromString(envString: 'API_BASE_URL=');
+    test('muro de autenticação da Vercel é nomeado, não vira erro genérico',
+        () async {
       final repo = RankingRepository(
-        client: MockClient((_) async => http.Response(jsonEncode(payload), 200)),
+        client: MockClient((_) async => http.Response(
+              '<html><body>Authentication Required</body></html>',
+              401,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            )),
       );
       final e = await errorFrom(repo);
       expect(e, isA<RankingUnavailable>());
-      expect(e.toString(), contains('.env'));
+      expect(e.toString(), contains('Deployment Protection'));
+    });
+
+    test('.env vazio cai na URL de produção em vez de desligar o ranking',
+        () async {
+      dotenv.loadFromString(envString: 'API_BASE_URL=');
+      late Uri seen;
+      final repo = RankingRepository(client: MockClient((req) async {
+        seen = req.url;
+        return http.Response(jsonEncode(payload), 200);
+      }));
+      await repo.fetchTopByXp();
+      expect(seen.origin, EnvConfig.defaultApiBaseUrl);
     });
   });
 }

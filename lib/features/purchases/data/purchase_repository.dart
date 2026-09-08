@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../../core/config/env_config.dart';
+import '../../../core/net/server_diagnostics.dart';
 import '../../../shared/models/user_profile.dart';
 import '../../auth/data/auth_session.dart';
 
@@ -67,7 +68,8 @@ class PurchaseRepository {
       body = jsonDecode(response.body) as Map<String, dynamic>;
     } catch (_) {
       throw PurchaseVerificationFailure(
-        'Resposta inesperada do servidor (HTTP ${response.statusCode}).',
+        ServerDiagnostics.describeNonJson(response) ??
+            'Resposta inesperada do servidor (HTTP ${response.statusCode}).',
       );
     }
 

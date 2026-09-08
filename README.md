@@ -61,3 +61,28 @@ flutter test
 ## Observações
 
 O projeto funciona sem backend. As informações do usuário, progresso e configurações são salvas localmente usando Hive.
+
+## Backend
+
+A API fica em `server/` (Vercel + Neon Postgres) e é publicada só a partir da
+branch `main`. Detalhes de deploy, variáveis de ambiente e a configuração do
+Google em `server/README.md`.
+
+O app lê `API_BASE_URL` e `GOOGLE_SERVER_CLIENT_ID` do `.env` (veja
+`.env.example`). As duas também podem ser passadas na hora do build, e nesse
+caso vencem o arquivo:
+
+```bash
+flutter build appbundle \
+  --dart-define=API_BASE_URL=https://buggo-api.vercel.app \
+  --dart-define=GOOGLE_SERVER_CLIENT_ID=...
+```
+
+Sem nenhum dos dois, o app usa a URL de produção embutida em
+`lib/core/config/env_config.dart` — antes ele caía calado no modo convidado.
+
+## Monitor do servidor
+
+- Página: <https://buggo-api.vercel.app/status.html>
+- JSON: `GET /api/health`
+- Checagem automática de hora em hora: `.github/workflows/monitor.yml`

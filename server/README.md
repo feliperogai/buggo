@@ -4,6 +4,25 @@ API protegida em frente ao Neon Postgres usada pelo app Flutter (Buggo) para
 login, sincronização de perfil e ranking. O app nunca se conecta direto no
 Postgres — só chama esta API por HTTPS.
 
+## Deployment Protection precisa ficar DESLIGADA
+
+É a causa de "o servidor não funciona no celular". Com a *Deployment
+Protection* (Vercel Authentication) ligada, a Vercel responde a tela de login
+dela **antes** de chamar qualquer função: o aparelho recebe HTML com HTTP 401
+e nunca chega na API. Não é bug do app — e não aparece para quem testa pelo
+navegador já logado na Vercel, que passa pelo muro sem perceber.
+
+Como conferir: se `/api/health` responde JSON, está liberado. Se responde uma
+página de login, está bloqueado. Nos logs da Vercel, o sinal é não existir
+*nenhuma* invocação de função, mesmo com gente usando o app.
+
+Onde desligar: **Vercel > projeto `buggo-api` > Settings > Deployment
+Protection > Vercel Authentication > Disabled**, e salvar.
+
+Deixar desligado é o certo aqui: esta API é pública por natureza (o app roda
+em milhares de celulares anônimos) e ela tem a própria autenticação — JWT em
+todas as rotas de dados, e o `/api/leaderboard` é público de propósito.
+
 ## Deploy (Vercel)
 
 1. Crie um novo projeto na Vercel apontando para este repositório.
@@ -11,10 +30,44 @@ Postgres — só chama esta API por HTTPS.
 3. Em **Settings > Environment Variables**, adicione as chaves listadas em
    `.env.example` (`DATABASE_URL`, `JWT_SECRET`, `GMAIL_USER`,
    `GMAIL_APP_PASSWORD`, `APP_URL`).
-4. Rode `schema.sql` uma vez no SQL Editor do Neon (projeto `buggo`, branch
+4. Desligue a Deployment Protection (seção acima).
+5. Rode `schema.sql` uma vez no SQL Editor do Neon (projeto `buggo`, branch
    `production`) para criar as tabelas.
-5. Faça o deploy. A URL gerada (ex: `https://buggo-api.vercel.app`) é o valor
+6. Faça o deploy. A URL gerada (ex: `https://buggo-api.vercel.app`) é o valor
    que vai em `API_BASE_URL` no `.env` do app Flutter.
+
+### Só a main é publicada
+
+`vercel.json` restringe o deploy automático à branch `main`; push em qualquer
+outra branch não gera deployment nenhum:
+
+```json
+"git": { "deploymentEnabled": { "*": false, "main": true } }
+```
+
+### O autor do commit decide se o deploy roda
+
+No plano Hobby a Vercel **bloqueia** (estado `BLOCKED`, sem publicar) todo
+deployment cujo commit foi assinado por um e-mail que não pertence à conta.
+Foi o que aconteceu com vários deploys desta API. Antes de commitar:
+
+```bash
+git config user.name  "caspheon"
+git config user.email "contact@caspheon.com"
+```
+
+## Monitor
+
+- **Página**: <https://buggo-api.vercel.app/status.html> — mostra cada peça do
+  servidor (banco, tabelas, JWT, e-mail, login Google, compras), atualiza
+  sozinha a cada 30s e diz explicitamente quando o que voltou foi a tela de
+  login da Vercel.
+- **Rota**: `GET /api/health` → JSON com `status` (`ok` | `degraded` | `down`),
+  `summary` e a lista de checagens. Responde 503 quando algo essencial caiu.
+  Não expõe valor de variável nenhuma, só se está definida.
+- **Automático**: `.github/workflows/monitor.yml` consulta a rota de hora em
+  hora e falha o job (e-mail do GitHub) quando o `status` é `down`. Recurso
+  opcional desligado vira aviso, não falha.
 
 ## Desenvolvimento local
 
@@ -37,7 +90,7 @@ npm run typecheck
 - `PUT /api/profile` — header `Authorization: Bearer <token>`, corpo = perfil
   completo
 - `GET /api/leaderboard?by=xp|streak&limit=20` — público
-\
+- `GET /api/health` — público; estado de cada dependência do servidor
 
 ## Endpoints novos
 

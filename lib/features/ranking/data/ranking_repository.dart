@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../../core/config/env_config.dart';
+import '../../../core/net/server_diagnostics.dart';
 import 'ranking_entry.dart';
 
 /// Thrown when the leaderboard couldn't be read from the backend. Carries a
@@ -42,7 +43,7 @@ class RankingRepository {
   }) async {
     if (!isLive) {
       throw RankingUnavailable(
-        'App sem API_BASE_URL: o .env não foi embutido nesta build.',
+        'Esta build não tem URL de API para chamar.',
       );
     }
 
@@ -66,7 +67,8 @@ class RankingRepository {
 
     if (response.statusCode != 200) {
       throw RankingUnavailable(
-        'O servidor respondeu HTTP ${response.statusCode} ao buscar o ranking.',
+        ServerDiagnostics.describeNonJson(response) ??
+            'O servidor respondeu HTTP ${response.statusCode} ao buscar o ranking.',
       );
     }
 
@@ -84,7 +86,10 @@ class RankingRepository {
         );
       }).toList();
     } catch (_) {
-      throw RankingUnavailable('Resposta inesperada do servidor ao ler o ranking.');
+      throw RankingUnavailable(
+        ServerDiagnostics.describeNonJson(response) ??
+            'Resposta inesperada do servidor ao ler o ranking.',
+      );
     }
   }
 }
