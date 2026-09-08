@@ -50,6 +50,12 @@ class Lesson {
 
 class CourseLevel {
   final int id;
+
+  /// Linguagem a que este nível pertence (`logic`, `python`, `javascript`...).
+  /// É o que separa as trilhas: cada linguagem tem a sua, e a trilha exibida
+  /// é a da linguagem escolhida pelo usuário.
+  final String languageId;
+
   final String title;
   final String description;
   final String emoji;
@@ -58,6 +64,7 @@ class CourseLevel {
 
   const CourseLevel({
     required this.id,
+    required this.languageId,
     required this.title,
     required this.description,
     required this.emoji,

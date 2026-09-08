@@ -37,7 +37,9 @@ bool _allLessons(UserProfile u, int completed, int total) =>
 bool _logicFoundations(UserProfile u, int completed, int total) =>
     hasCompletedLogicFoundations(u.completedLessons);
 bool _pythonEssentials(UserProfile u, int completed, int total) =>
-    pythonCurriculum[2].lessons.every((l) => u.completedLessons.contains(l.id));
+    pythonCurriculum[logicFoundationLevelCount]
+        .lessons
+        .every((l) => u.completedLessons.contains(l.id));
 bool _streak3(UserProfile u, int completed, int total) => u.streak >= 3;
 bool _streak7(UserProfile u, int completed, int total) => u.streak >= 7;
 bool _streakFreeze(UserProfile u, int completed, int total) =>

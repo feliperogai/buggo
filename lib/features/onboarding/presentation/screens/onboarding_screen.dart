@@ -458,7 +458,6 @@ class _LanguagePageState extends State<_LanguagePage> {
               moduleId: module.id,
               isOpen: _openModuleId == module.id,
               selectedLanguage: widget.selected,
-              hasCompletedFoundations: false,
               onSelect: widget.onSelect,
             ),
             const SizedBox(height: 10),
@@ -550,14 +549,12 @@ class _LanguageModuleOptions extends StatelessWidget {
   final String moduleId;
   final bool isOpen;
   final String selectedLanguage;
-  final bool hasCompletedFoundations;
   final ValueChanged<String> onSelect;
 
   const _LanguageModuleOptions({
     required this.moduleId,
     required this.isOpen,
     required this.selectedLanguage,
-    required this.hasCompletedFoundations,
     required this.onSelect,
   });
 
@@ -578,10 +575,7 @@ class _LanguageModuleOptions extends StatelessWidget {
           for (final entry in options.asMap().entries) ...[
             Builder(
               builder: (context) {
-                final statusLabel = learningLanguageStatusLabel(
-                  entry.value,
-                  hasCompletedFoundations: hasCompletedFoundations,
-                );
+                final statusLabel = learningLanguageStatusLabel(entry.value);
                 final isUnlocked = statusLabel == null;
 
                 return _OptionCard(

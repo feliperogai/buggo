@@ -5,9 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../data/content/python_curriculum.dart';
+import '../../../../data/content/curriculum.dart';
 import '../../../../shared/constants/learning_languages.dart';
-import '../../../../shared/models/lesson.dart';
 import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/pixel_avatars.dart';
@@ -26,11 +25,10 @@ class HomeScreen extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final hasCompletedFoundations =
-        hasCompletedLogicFoundations(user.completedLessons);
-    final selectedLanguage = hasCompletedFoundations ? user.language : 'logic';
+    // A trilha é a da linguagem escolhida, sem passar por lógica antes.
+    final selectedLanguage = user.language;
     final currentLanguage = learningLanguageFor(selectedLanguage);
-    final visibleLevels = _levelsForLanguage(currentLanguage.id);
+    final visibleLevels = levelsForLanguage(currentLanguage.id);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -41,12 +39,8 @@ class HomeScreen extends ConsumerWidget {
             child: _HeaderCard(
               user: user,
               currentLanguage: currentLanguage,
-              onLanguageTap: () => _showLanguagePicker(
-                context,
-                ref,
-                selectedLanguage,
-                hasCompletedFoundations: hasCompletedFoundations,
-              ),
+              onLanguageTap: () =>
+                  _showLanguagePicker(context, ref, selectedLanguage),
               onStreakTap: () => context.push(AppRouter.streak),
               onCoinsTap: () => context.push(AppRouter.coins),
               onLivesTap: () => context.push(AppRouter.hearts),
@@ -78,12 +72,8 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(width: 12),
                       _LanguageSwitchButton(
                         language: currentLanguage,
-                        onTap: () => _showLanguagePicker(
-                          context,
-                          ref,
-                          selectedLanguage,
-                          hasCompletedFoundations: hasCompletedFoundations,
-                        ),
+                        onTap: () =>
+                            _showLanguagePicker(context, ref, selectedLanguage),
                       ),
                     ],
                   ),
@@ -101,11 +91,12 @@ class HomeScreen extends ConsumerWidget {
                 final completed = level.lessons
                     .where((l) => user.completedLessons.contains(l.id))
                     .length;
-                final isUnlocked = index == 0
-                    ? currentLanguage.id == 'logic' || hasCompletedFoundations
-                    : visibleLevels[index - 1].level.lessons.every(
-                          (l) => user.completedLessons.contains(l.id),
-                        );
+                // Dentro da trilha um nível ainda depende do anterior; o
+                // primeiro de qualquer linguagem abre direto.
+                final isUnlocked = index == 0 ||
+                    visibleLevels[index - 1].level.lessons.every(
+                      (l) => user.completedLessons.contains(l.id),
+                    );
 
                 return Padding(
                   padding:
@@ -137,38 +128,11 @@ class HomeScreen extends ConsumerWidget {
 }
 
 // ── Header Card ────────────────────────────────────────────────
-List<_LearningLevelEntry> _levelsForLanguage(String languageId) {
-  return pythonCurriculum.asMap().entries.where((entry) {
-    if (languageId == 'logic') {
-      return entry.key < logicFoundationLevelCount;
-    }
-
-    if (languageId == 'python') {
-      return entry.key >= logicFoundationLevelCount;
-    }
-
-    return false;
-  }).map((entry) {
-    return _LearningLevelEntry(index: entry.key, level: entry.value);
-  }).toList(growable: false);
-}
-
-class _LearningLevelEntry {
-  final int index;
-  final CourseLevel level;
-
-  const _LearningLevelEntry({
-    required this.index,
-    required this.level,
-  });
-}
-
 void _showLanguagePicker(
   BuildContext context,
   WidgetRef ref,
-  String selectedLanguage, {
-  required bool hasCompletedFoundations,
-}) {
+  String selectedLanguage,
+) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -176,12 +140,8 @@ void _showLanguagePicker(
     builder: (sheetContext) {
       return _LanguagePickerSheet(
         selectedLanguage: selectedLanguage,
-        hasCompletedFoundations: hasCompletedFoundations,
         onSelect: (language) {
-          final statusLabel = learningLanguageStatusLabel(
-            language,
-            hasCompletedFoundations: hasCompletedFoundations,
-          );
+          final statusLabel = learningLanguageStatusLabel(language);
 
           if (statusLabel != null) {
             Navigator.of(sheetContext).pop();
@@ -193,9 +153,7 @@ void _showLanguagePicker(
                   borderRadius: BorderRadius.circular(14),
                 ),
                 content: Text(
-                  statusLabel == 'Bloqueado'
-                      ? 'Conclua Fundamentos de Lógica para liberar ${language.label}.'
-                      : '${language.label} chega em breve.',
+                  '${language.label} chega em breve.',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: Colors.white,
                   ),
@@ -279,12 +237,10 @@ class _LanguageSwitchButton extends StatelessWidget {
 
 class _LanguagePickerSheet extends StatefulWidget {
   final String selectedLanguage;
-  final bool hasCompletedFoundations;
   final ValueChanged<LearningLanguageOption> onSelect;
 
   const _LanguagePickerSheet({
     required this.selectedLanguage,
-    required this.hasCompletedFoundations,
     required this.onSelect,
   });
 
@@ -351,7 +307,6 @@ class _LanguagePickerSheetState extends State<_LanguagePickerSheet> {
                       moduleId: module.id,
                       isOpen: _openModuleId == module.id,
                       selectedLanguage: widget.selectedLanguage,
-                      hasCompletedFoundations: widget.hasCompletedFoundations,
                       onSelect: widget.onSelect,
                     ),
                     const SizedBox(height: 8),
@@ -458,14 +413,12 @@ class _LanguageModuleOptions extends StatelessWidget {
   final String moduleId;
   final bool isOpen;
   final String selectedLanguage;
-  final bool hasCompletedFoundations;
   final ValueChanged<LearningLanguageOption> onSelect;
 
   const _LanguageModuleOptions({
     required this.moduleId,
     required this.isOpen,
     required this.selectedLanguage,
-    required this.hasCompletedFoundations,
     required this.onSelect,
   });
 
@@ -486,10 +439,7 @@ class _LanguageModuleOptions extends StatelessWidget {
           for (final entry in languages.asMap().entries) ...[
             Builder(
               builder: (context) {
-                final statusLabel = learningLanguageStatusLabel(
-                  entry.value,
-                  hasCompletedFoundations: hasCompletedFoundations,
-                );
+                final statusLabel = learningLanguageStatusLabel(entry.value);
 
                 return _LanguageOptionTile(
                   language: entry.value,

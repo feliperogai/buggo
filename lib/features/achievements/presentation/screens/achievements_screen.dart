@@ -6,7 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../data/content/achievements_catalog.dart';
-import '../../../../data/content/python_curriculum.dart';
+import '../../../../data/content/curriculum.dart';
 import '../../../../shared/providers/user_provider.dart';
 
 class AchievementsScreen extends ConsumerWidget {
@@ -23,8 +23,7 @@ class AchievementsScreen extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final totalLessons =
-        pythonCurriculum.expand((level) => level.lessons).length;
+    final totalLessons = totalLessonCount;
     final completedLessons = user.completedLessons.length;
     final completedPercent =
         totalLessons == 0 ? 0 : (completedLessons / totalLessons * 100).round();

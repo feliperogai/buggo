@@ -6,7 +6,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../data/content/achievements_catalog.dart';
-import '../../../../data/content/python_curriculum.dart';
+import '../../../../data/content/curriculum.dart';
+import '../../../../shared/constants/learning_languages.dart';
 import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/pixel_avatars.dart';
@@ -21,8 +22,15 @@ class ProfileScreen extends ConsumerWidget {
     final user = ref.watch(userProvider);
     if (user == null) return const SizedBox.shrink();
 
-    final total = pythonCurriculum.expand((l) => l.lessons).length;
-    final done = user.completedLessons.length;
+    // Progresso da trilha atual. Somar as 16 linguagens faria quem terminou
+    // Python inteiro aparecer com 20% — número correto e inútil.
+    // learningLanguageFor cai na primeira opção quando o perfil guarda uma
+    // linguagem que não existe mais — sem isso a barra ficaria em 0 de 0.
+    final trackLessons =
+        lessonsForLanguage(learningLanguageFor(user.language).id);
+    final total = trackLessons.length;
+    final done =
+        trackLessons.where((l) => user.completedLessons.contains(l.id)).length;
     final pct = total > 0 ? (done / total * 100).round() : 0;
 
     return Scaffold(
@@ -384,8 +392,7 @@ class _AchievementsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalLessons =
-        pythonCurriculum.expand((l) => l.lessons).length;
+    final totalLessons = totalLessonCount;
     final completedLessons = user.completedLessons.length;
     final preview = achievementCatalog.take(_previewCount).toList();
 

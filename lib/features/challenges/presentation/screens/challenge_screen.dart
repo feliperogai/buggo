@@ -7,7 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/python_simulator.dart';
-import '../../../../data/content/python_curriculum.dart';
+import '../../../../data/content/curriculum.dart';
 import '../../../../shared/models/lesson.dart';
 import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
@@ -63,7 +63,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
   }
 
   Lesson get lesson =>
-      pythonCurriculum[widget.levelIndex].lessons[widget.lessonIndex];
+      courseCurriculum[widget.levelIndex].lessons[widget.lessonIndex];
 
   void _checkAnswer() {
     if (_selectedOption == null) return;
@@ -167,6 +167,32 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
       code = code.replaceAll('{$i}', _filledTokens[i]!);
     }
 
+    // Só existe interpretador embutido para Python. Nas outras linguagens a
+    // lição vem sem `expectedOutput` e a correção é a montagem do trecho —
+    // inventar a saída de um Java que ninguém executou seria mentir para
+    // quem está aprendendo.
+    if (l.expectedOutput == null) {
+      final expectedTokens = l.correctTokens!;
+      final correct = _filledTokens.length == expectedTokens.length &&
+          Iterable<int>.generate(expectedTokens.length)
+              .every((i) => _filledTokens[i] == expectedTokens[i]);
+
+      setState(() {
+        _hasRun = true;
+        _runCorrect = correct;
+        _terminalOutput = correct
+            ? '$code\n\nCódigo montado corretamente.'
+            : 'Ainda não está certo.'
+                '${l.hint != null ? '\n  ${l.hint}' : ''}';
+      });
+      if (correct) {
+        SoundService.instance.play(Sfx.correct);
+      } else {
+        _playErrorSound();
+      }
+      return;
+    }
+
     try {
       final output = PythonSimulator().simulate(code);
       final expected = (l.expectedOutput ?? '').trim();
@@ -232,7 +258,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
           _playDelayed(Sfx.streak, const Duration(milliseconds: 1400));
         }
       }
-      final level = pythonCurriculum[widget.levelIndex];
+      final level = courseCurriculum[widget.levelIndex];
       final isLast = widget.lessonIndex == level.lessons.length - 1;
       context.pushReplacement(AppRouter.success, extra: {
         'xpEarned': lesson.xpReward,
@@ -784,7 +810,7 @@ class _ProgressHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final level = pythonCurriculum[levelIndex];
+    final level = courseCurriculum[levelIndex];
     final total = level.lessons.length;
     final progress = (lessonIndex + 1) / total;
     final xpReward = level.lessons[lessonIndex].xpReward;

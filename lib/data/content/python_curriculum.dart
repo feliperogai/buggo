@@ -5,6 +5,7 @@ const int logicFoundationLevelCount = 2;
 const List<CourseLevel> pythonCurriculum = [
   CourseLevel(
     id: 0,
+    languageId: 'logic',
     title: 'Fundamentos: jogos de lógica',
     description: 'Enigmas, sequências e escolhas antes das linguagens',
     emoji: 'LOG',
@@ -140,6 +141,7 @@ const List<CourseLevel> pythonCurriculum = [
   ),
   CourseLevel(
     id: 1,
+    languageId: 'logic',
     title: 'Fundamentos: enigmas e estratégia',
     description: 'Memória, dedução, prioridades e desafios em camadas',
     emoji: 'REP',
@@ -266,10 +268,13 @@ const List<CourseLevel> pythonCurriculum = [
   ),
   CourseLevel(
     id: 2,
+    languageId: 'python',
     title: 'Python Essencial',
     description: 'Sintaxe, variáveis, textos e cálculos',
     emoji: 'PY',
-    isLocked: true,
+    // Primeiro nível da trilha de Python: abre direto. Ficava trancado
+    // quando Python só existia depois dos dois níveis de lógica.
+    isLocked: false,
     lessons: [
       Lesson(
         id: 'py_basic_0',
@@ -383,6 +388,7 @@ const List<CourseLevel> pythonCurriculum = [
   ),
   CourseLevel(
     id: 3,
+    languageId: 'python',
     title: 'Funções em Python',
     description: 'Crie comandos reutilizáveis e claros',
     emoji: 'DEF',
@@ -531,6 +537,7 @@ const List<CourseLevel> pythonCurriculum = [
   ),
   CourseLevel(
     id: 4,
+    languageId: 'python',
     title: 'Fluxos reais com Python',
     description: 'Regras, classificações e validações',
     emoji: 'FLOW',
@@ -628,6 +635,7 @@ const List<CourseLevel> pythonCurriculum = [
   ),
   CourseLevel(
     id: 5,
+    languageId: 'python',
     title: 'Mini projetos guiados',
     description: 'Junte lógica, Python e funções',
     emoji: 'PROJ',

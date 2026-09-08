@@ -8,8 +8,11 @@ class LearningLanguageOption {
   final String moduleId;
   final IconData icon;
   final Color color;
+
+  /// Se a linguagem tem trilha publicada. Continua existindo para uma opção
+  /// nova entrar na lista antes do conteúdo — `curriculum_test` garante que
+  /// toda opção marcada como disponível tem níveis de verdade.
   final bool isAvailable;
-  final bool requiresFoundations;
 
   const LearningLanguageOption({
     required this.id,
@@ -19,7 +22,6 @@ class LearningLanguageOption {
     required this.icon,
     required this.color,
     required this.isAvailable,
-    this.requiresFoundations = true,
   });
 }
 
@@ -41,7 +43,7 @@ const learningModules = [
   LearningModule(
     id: 'fundamentals',
     label: 'Fundamentos',
-    description: 'Comece por jogos de lógica e raciocínio',
+    description: 'Jogos de lógica e raciocínio — opcional, bom para começar',
     icon: Icons.school_rounded,
   ),
   LearningModule(
@@ -80,12 +82,11 @@ const learningLanguageOptions = [
   LearningLanguageOption(
     id: 'logic',
     label: 'Lógica',
-    description: 'Jogos, enigmas, padrões e estratégia',
+    description: 'Jogos, enigmas e padrões. Recomendado para quem nunca programou',
     moduleId: 'fundamentals',
     icon: Icons.psychology_rounded,
     color: AppColors.primary,
     isAvailable: true,
-    requiresFoundations: false,
   ),
   LearningLanguageOption(
     id: 'python',
@@ -103,7 +104,7 @@ const learningLanguageOptions = [
     moduleId: 'frontend',
     icon: Icons.code_rounded,
     color: AppColors.levelBlue,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'typescript',
@@ -112,7 +113,7 @@ const learningLanguageOptions = [
     moduleId: 'frontend',
     icon: Icons.integration_instructions_rounded,
     color: AppColors.levelBlue,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'java',
@@ -121,7 +122,7 @@ const learningLanguageOptions = [
     moduleId: 'backend',
     icon: Icons.coffee_rounded,
     color: AppColors.accent,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'csharp',
@@ -130,7 +131,7 @@ const learningLanguageOptions = [
     moduleId: 'backend',
     icon: Icons.widgets_rounded,
     color: AppColors.primaryLight,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'cpp',
@@ -139,7 +140,7 @@ const learningLanguageOptions = [
     moduleId: 'systems',
     icon: Icons.memory_rounded,
     color: AppColors.levelBlue,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'c',
@@ -148,7 +149,7 @@ const learningLanguageOptions = [
     moduleId: 'systems',
     icon: Icons.developer_board_rounded,
     color: AppColors.textSecondary,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'go',
@@ -157,7 +158,7 @@ const learningLanguageOptions = [
     moduleId: 'backend',
     icon: Icons.bolt_rounded,
     color: AppColors.success,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'kotlin',
@@ -166,7 +167,7 @@ const learningLanguageOptions = [
     moduleId: 'mobile',
     icon: Icons.phone_android_rounded,
     color: AppColors.levelPink,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'swift',
@@ -175,7 +176,7 @@ const learningLanguageOptions = [
     moduleId: 'mobile',
     icon: Icons.phone_iphone_rounded,
     color: AppColors.error,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'php',
@@ -184,7 +185,7 @@ const learningLanguageOptions = [
     moduleId: 'backend',
     icon: Icons.public_rounded,
     color: AppColors.levelBlue,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'ruby',
@@ -193,7 +194,7 @@ const learningLanguageOptions = [
     moduleId: 'backend',
     icon: Icons.diamond_rounded,
     color: AppColors.error,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'rust',
@@ -202,7 +203,7 @@ const learningLanguageOptions = [
     moduleId: 'systems',
     icon: Icons.shield_rounded,
     color: AppColors.accent,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'dart',
@@ -211,7 +212,7 @@ const learningLanguageOptions = [
     moduleId: 'mobile',
     icon: Icons.flutter_dash_rounded,
     color: AppColors.levelBlue,
-    isAvailable: false,
+    isAvailable: true,
   ),
   LearningLanguageOption(
     id: 'queries',
@@ -220,7 +221,7 @@ const learningLanguageOptions = [
     moduleId: 'database',
     icon: Icons.storage_rounded,
     color: AppColors.textPrimary,
-    isAvailable: false,
+    isAvailable: true,
   ),
 ];
 
@@ -231,25 +232,19 @@ LearningLanguageOption learningLanguageFor(String id) {
   );
 }
 
-bool isLearningLanguageUnlocked(
-  LearningLanguageOption language, {
-  required bool hasCompletedFoundations,
-}) {
-  if (!language.isAvailable) return false;
-  if (!language.requiresFoundations) return true;
-  return hasCompletedFoundations;
-}
+/// Toda linguagem com trilha publicada está liberada desde o primeiro dia.
+///
+/// Antes era preciso terminar os dois níveis de lógica para destravar
+/// qualquer linguagem. Quem já programa não tinha por que passar por ali, e
+/// quem queria começar por outra linguagem desistia na porta. Lógica virou
+/// recomendação — continua sendo a primeira da lista —, não pedágio.
+bool isLearningLanguageUnlocked(LearningLanguageOption language) =>
+    language.isAvailable;
 
-String? learningLanguageStatusLabel(
-  LearningLanguageOption language, {
-  required bool hasCompletedFoundations,
-}) {
-  if (!language.isAvailable) return 'Em breve';
-  if (language.requiresFoundations && !hasCompletedFoundations) {
-    return 'Bloqueado';
-  }
-  return null;
-}
+/// Etiqueta mostrada ao lado da linguagem na lista. `null` quando não há
+/// nada a avisar.
+String? learningLanguageStatusLabel(LearningLanguageOption language) =>
+    language.isAvailable ? null : 'Em breve';
 
 List<LearningLanguageOption> learningLanguagesForModule(String moduleId) {
   return learningLanguageOptions

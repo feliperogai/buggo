@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../data/content/python_curriculum.dart';
+import '../../../../data/content/curriculum.dart';
 import '../../../../shared/models/lesson.dart';
 import '../../../../shared/providers/user_provider.dart';
 
@@ -17,7 +17,7 @@ class LevelMapScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProvider);
-    final level = pythonCurriculum[levelId];
+    final level = courseCurriculum[levelId];
 
     const levelColors = [
       AppColors.levelBlue,
