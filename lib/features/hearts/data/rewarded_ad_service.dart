@@ -24,14 +24,18 @@ class RewardedAdService {
   static const _testIos = 'ca-app-pub-3940256099942544/1712485313';
 
   static String get _adUnitId {
-    final configured = EnvConfig.admobRewardedAdUnitId;
-    if (configured.isNotEmpty) return configured;
-    return Platform.isIOS ? _testIos : _testAndroid;
+    if (usingTestAds) return Platform.isIOS ? _testIos : _testAndroid;
+    return EnvConfig.admobRewardedAdUnitId;
   }
 
-  /// Verdadeiro enquanto o app estiver usando os IDs de teste. A tela mostra
-  /// isso, para ninguém achar que já está faturando.
-  static bool get usingTestAds => EnvConfig.admobRewardedAdUnitId.isEmpty;
+  /// Blocos de teste em vez dos reais.
+  ///
+  /// Em **debug é sempre teste**, mesmo com o bloco real no .env: exibir o
+  /// anúncio de produção durante o desenvolvimento conta como tráfego
+  /// inválido para o Google e pode suspender a conta AdMob. Em release, cai
+  /// no teste só se o bloco não estiver configurado.
+  static bool get usingTestAds =>
+      kDebugMode || EnvConfig.admobRewardedAdUnitId.isEmpty;
 
   bool _initialized = false;
   RewardedAd? _ad;
