@@ -1,0 +1,4 @@
+# app-ads.txt do Buggo (IAB Tech Lab). Autoriza o Google a vender o
+# inventario de anuncios do app. Sem este arquivo publicado na raiz do site
+# do desenvolvedor, o AdMob marca a verificacao como falha.
+google.com, pub-1776097686060678, DIRECT, f08c47fec0942fa0
