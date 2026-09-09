@@ -166,6 +166,48 @@ class UserNotifier extends Notifier<UserProfile?> {
     return true;
   }
 
+  /// Já assistiu ao anúncio de vidas hoje?
+  ///
+  /// O dia vira no fuso de São Paulo, e não em UTC: rodando em UTC o limite
+  /// zeraria às 21h, no meio da noite de quem está jogando.
+  bool get usedAdRefillToday {
+    final last = state?.lastAdRefillAt;
+    if (last == null) return false;
+    return _brazilDay(last) == _brazilDay(DateTime.now());
+  }
+
+  /// Assistir anúncio vale a pena agora? Falso com vidas cheias, com Buggo+
+  /// ativo (que já dá vidas ilimitadas) ou depois do anúncio do dia.
+  bool get canWatchAdForLives {
+    final profile = state;
+    if (profile == null) return false;
+    if (profile.hasUnlimitedLives) return false;
+    if (profile.lives >= UserProfile.maxLives) return false;
+    return !usedAdRefillToday;
+  }
+
+  /// Recarrega todas as vidas depois de um anúncio assistido até o fim.
+  ///
+  /// Chamado só pelo callback de recompensa do SDK. Devolve false quando o
+  /// limite do dia já foi usado — a checagem é repetida aqui porque entre
+  /// carregar o anúncio e terminar de assistir dá tempo de o estado mudar.
+  bool refillLivesFromAd() {
+    if (!canWatchAdForLives) return false;
+    saveProfile(state!.copyWith(
+      lives: UserProfile.maxLives,
+      clearLastLifeLostAt: true,
+      lastAdRefillAt: DateTime.now(),
+    ));
+    return true;
+  }
+
+  /// Data no fuso de Brasília, sem depender de pacote de timezone: o país
+  /// está em UTC-3 o ano todo desde o fim do horário de verão.
+  static String _brazilDay(DateTime instant) {
+    final local = instant.toUtc().subtract(const Duration(hours: 3));
+    return '${local.year}-${local.month}-${local.day}';
+  }
+
   /// Spends coins to refill all missing lives at once. Returns false if the
   /// user can't afford it or already has full/unlimited lives.
   bool refillAllLives() {

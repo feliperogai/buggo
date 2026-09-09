@@ -11,7 +11,7 @@ import {
   submittedCode,
 } from '../lib/challenge';
 import { generateDailyChallenge, PipelineError } from '../lib/ai/pipeline';
-import { gradeCodeWrite } from '../lib/ai/grade';
+import { gradeCodeWrite, gradeQuiz } from '../lib/ai/grade';
 
 /// Desafio do dia, gerado por IA a partir do ponto em que a pessoa está.
 ///
@@ -198,31 +198,45 @@ async function handlePost(
     return;
   }
 
-  // Desafio de escrever código não tem gabarito comparável: a correção é a
-  // IA revisora lendo a resposta, depois das exigências objetivas.
+  // Quem corrige é sempre a segunda IA, não quem escreveu o exercício. O
+  // gerador publica sozinho (ver `lib/ai/pipeline.ts`), então confiar no
+  // gabarito dele aqui repetiria o erro dele contra o aluno — e o prejuízo
+  // seria a moeda de quem respondeu certo.
   let correct: boolean;
   let feedback: string | null = null;
 
-  if (row.payload.type === 'codeWrite') {
-    const code = submittedCode(body.answer);
-    if (code === null) {
-      res.status(400).json({ error: 'Escreva o código antes de enviar.' });
-      return;
-    }
-    try {
+  try {
+    if (row.payload.type === 'codeWrite') {
+      const code = submittedCode(body.answer);
+      if (code === null) {
+        res.status(400).json({ error: 'Escreva o código antes de enviar.' });
+        return;
+      }
       const grade = await gradeCodeWrite(row.payload, code);
       correct = grade.passed;
       feedback = grade.feedback;
-    } catch (_) {
-      // Falha da IA não vira reprovação nem aprovação: nada é creditado e a
-      // pessoa pode tentar de novo.
-      res.status(503).json({
-        error: 'Não foi possível corrigir agora. Tente de novo em instantes.',
-      });
-      return;
+    } else if (row.payload.type === 'quiz') {
+      const chosen = (body.answer as Record<string, unknown> | undefined)
+        ?.optionIndex;
+      if (typeof chosen !== 'number') {
+        res.status(400).json({ error: 'Escolha uma alternativa antes de enviar.' });
+        return;
+      }
+      const grade = await gradeQuiz(row.payload, chosen);
+      correct = grade.passed;
+      feedback = grade.feedback;
+    } else {
+      // Tipos montados com peças prontas continuam determinísticos: a
+      // resposta é uma sequência exata, não há julgamento a fazer.
+      correct = isAnswerCorrect(row.payload, body.answer);
     }
-  } else {
-    correct = isAnswerCorrect(row.payload, body.answer);
+  } catch (_) {
+    // Falha da IA não vira reprovação nem aprovação: nada é creditado e a
+    // pessoa pode tentar de novo.
+    res.status(503).json({
+      error: 'Não foi possível corrigir agora. Tente de novo em instantes.',
+    });
+    return;
   }
 
   if (!correct) {

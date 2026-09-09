@@ -99,6 +99,14 @@ class EnvConfig {
     return _fromDotenv('GOOGLE_SERVER_CLIENT_ID');
   }
 
+  /// Bloco de anúncio recompensado do AdMob (vidas por anúncio). Vazio faz o
+  /// app usar os IDs de teste do Google, que sempre preenchem e não faturam.
+  static String get admobRewardedAdUnitId {
+    const defined = String.fromEnvironment('ADMOB_REWARDED_AD_UNIT_ID');
+    if (defined.trim().isNotEmpty) return defined.trim();
+    return _fromDotenv('ADMOB_REWARDED_AD_UNIT_ID');
+  }
+
   /// O login com Google só é oferecido quando a API e o client id existem —
   /// sem os dois o botão só poderia falhar ao ser tocado.
   static bool get isGoogleSignInConfigured =>

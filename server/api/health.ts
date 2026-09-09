@@ -211,7 +211,8 @@ async function checkDailyChallenge(databaseUp: boolean): Promise<Check> {
     return {
       ...base,
       status: 'off',
-      detail: `${missing.join(' e ')} ausente(s): o desafio do dia não é gerado.`,
+      detail: `${missing.join(' e ')} ausente(s): sem DEEPSEEK_API_KEY não há `
+        + `desafio; sem OPENAI_API_KEY as respostas não são corrigidas.`,
     };
   }
 
@@ -253,7 +254,7 @@ async function checkDailyChallenge(databaseUp: boolean): Promise<Check> {
       ...base,
       status: 'ok',
       detail: `${generator!.name}:${generator!.model} gera, `
-        + `${reviewer!.name}:${reviewer!.model} revisa · `
+        + `${reviewer!.name}:${reviewer!.model} corrige as respostas · `
         + `${total} desafio(s) preparado(s) hoje.`,
     };
   } catch (error) {
