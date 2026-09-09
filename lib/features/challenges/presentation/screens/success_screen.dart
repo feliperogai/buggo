@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/audio/sound_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/mascot_widget.dart';
 
 class SuccessScreen extends StatefulWidget {
@@ -203,9 +204,19 @@ class _SuccessScreenState extends State<SuccessScreen> {
 
                     // Próxima lição
                     GestureDetector(
+                      // `go` zera a pilha inteira. Usado para seguir à lição
+                      // seguinte, ele deixava a nova lição sem o mapa embaixo,
+                      // e o "X" dela não tinha para onde voltar — o botão
+                      // ficava morto a partir da segunda lição da sequência.
+                      // `pushReplacement` troca só a tela de parabéns pela
+                      // próxima lição e mantém o mapa como pai. Voltar para a
+                      // home continua zerando a pilha, que é o certo lá.
                       onTap: () => widget.nextArgs != null
-                          ? context.go(widget.nextRoute, extra: widget.nextArgs)
-                          : context.go(widget.nextRoute),
+                          ? context.pushReplacement(
+                              widget.nextRoute,
+                              extra: widget.nextArgs,
+                            )
+                          : context.go(AppRouter.home),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 16),

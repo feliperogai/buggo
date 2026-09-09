@@ -104,6 +104,18 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
 
   void _selectBlank(int index) => setState(() => _selectedBlank = index);
 
+  /// Sai da lição. `pop` sozinho não serve: se a pilha estiver vazia — o que
+  /// acontecia ao encadear lições pela tela de parabéns — ele é um no-op e o
+  /// botão parece quebrado. Sem nada para desempilhar, volta para o mapa do
+  /// nível, que é o pai natural da lição.
+  void _exitLesson() {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go(AppRouter.levelMap, extra: widget.levelIndex);
+  }
+
   void _fillToken(String token) {
     if (_selectedBlank == null) {
       for (int i = 0; i < _filledTokens.length; i++) {
@@ -286,7 +298,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
     final outOfLives = user != null && !user.canPlay;
 
     if (outOfLives) {
-      return _NoLivesScreen(user: user);
+      return _NoLivesScreen(user: user, onExit: _exitLesson);
     }
 
     return Scaffold(
@@ -295,6 +307,7 @@ class _ChallengeScreenState extends ConsumerState<ChallengeScreen> {
         child: Column(
           children: [
             _ProgressHeader(
+              onExit: _exitLesson,
               levelIndex: widget.levelIndex,
               lessonIndex: widget.lessonIndex,
               lives: user?.lives ?? UserProfile.maxLives,
@@ -800,12 +813,15 @@ class _ProgressHeader extends StatelessWidget {
   final int lessonIndex;
   final int lives;
   final bool hasUnlimitedLives;
+  /// Sair fica com o State: só ele sabe se há algo na pilha para desempilhar.
+  final VoidCallback onExit;
 
   const _ProgressHeader({
     required this.levelIndex,
     required this.lessonIndex,
     required this.lives,
     required this.hasUnlimitedLives,
+    required this.onExit,
   });
 
   @override
@@ -830,7 +846,7 @@ class _ProgressHeader extends StatelessWidget {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => context.pop(),
+            onTap: onExit,
             child: Container(
               width: 36,
               height: 36,
@@ -1193,8 +1209,9 @@ class _BottomAction extends StatelessWidget {
 // ── No Lives Screen ─────────────────────────────────────────────
 class _NoLivesScreen extends StatelessWidget {
   final UserProfile user;
+  final VoidCallback onExit;
 
-  const _NoLivesScreen({required this.user});
+  const _NoLivesScreen({required this.user, required this.onExit});
 
   @override
   Widget build(BuildContext context) {
@@ -1208,7 +1225,7 @@ class _NoLivesScreen extends StatelessWidget {
               Row(
                 children: [
                   GestureDetector(
-                    onTap: () => context.pop(),
+                    onTap: onExit,
                     child: Container(
                       width: 36,
                       height: 36,
