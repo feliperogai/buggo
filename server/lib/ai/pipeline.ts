@@ -3,7 +3,6 @@ import {
   AiError,
   chatJson,
   generatorProvider,
-  reviewerProvider,
 } from './client';
 import { Challenge, DIFFICULTIES, validateChallenge } from '../challenge';
 
@@ -14,12 +13,16 @@ import { Challenge, DIFFICULTIES, validateChallenge } from '../challenge';
 /// formato das lições da trilha.
 const ALLOWED_TYPES: readonly Challenge['type'][] = ['quiz', 'codeWrite'];
 
-/// Esteira do desafio do dia: gera, confere no código, revisa com a outra IA.
+/// Esteira do desafio do dia: gera e confere o formato no código.
 ///
-/// A ordem importa. O validador determinístico roda **antes** do revisor:
-/// formato quebrado é barato de pegar com um `for` e não vale uma chamada
-/// paga. O revisor só recebe desafio bem formado, e responde a única pergunta
-/// que código não responde — a resposta marcada é mesmo a certa?
+/// O gerador publica sozinho. Não há aprovação prévia de outra IA: a revisão
+/// prévia reprovava quase tudo — inclusive soluções que ela própria admitia
+/// estarem certas, por detalhe de espaçamento — e o app ficava sem desafio
+/// nenhum. A segunda IA continua no circuito, mas no outro extremo: ela
+/// corrige a resposta que a pessoa enviou (`lib/ai/grade.ts`).
+///
+/// O que sobrou aqui é determinístico e barato: validação de formato e de
+/// tipo suportado. Nada que dependa de julgamento.
 
 export interface GeneratedChallenge {
   challenge: Challenge;
@@ -29,7 +32,7 @@ export interface GeneratedChallenge {
 }
 
 export interface PipelineFailure {
-  stage: 'config' | 'generate' | 'validate' | 'review';
+  stage: 'config' | 'generate' | 'validate';
   detail: string;
 }
 
@@ -53,28 +56,6 @@ const GENERATOR_SYSTEM = [
   '- Use apenas assunto que a pessoa já estudou, listado no pedido.',
   '- Nada de conteúdo adulto, violento, político ou ofensivo.',
   '- Sem HTML e sem links.',
-].join('\n');
-
-const REVIEWER_SYSTEM = [
-  'Você revisa exercícios de programação de um app para iniciantes',
-  'brasileiros, muitos adolescentes. Seu trabalho é reprovar o que está',
-  'errado, não elogiar.',
-  '',
-  'Responda SOMENTE com JSON: {"approved": boolean, "reason": string,',
-  '"difficulty": "facil"|"media"|"dificil"}.',
-  '',
-  'Reprove se qualquer uma for verdadeira:',
-  '- A resposta marcada como correta não é a correta.',
-  '- Alguma alternativa errada também poderia ser aceita como certa.',
-  '- Num desafio de escrever código: a "solution" não resolve o enunciado, ou',
-  '  algum item de "mustContain" pode faltar numa resposta correta.',
-  '- O código tem erro de sintaxe na linguagem indicada.',
-  '- O enunciado depende de assunto fora da lista do que já foi estudado.',
-  '- Não está em português do Brasil.',
-  '- Tem conteúdo inadequado para adolescente.',
-  '',
-  'Em "reason", escreva uma frase curta dizendo o motivo. Aprovar por',
-  'educação é o pior resultado possível: prefira reprovar na dúvida.',
 ].join('\n');
 
 function generatorPrompt(position: TrackPosition): string {
@@ -140,40 +121,7 @@ function generatorPrompt(position: TrackPosition): string {
   ].join('\n');
 }
 
-function reviewerPrompt(challenge: Challenge, position: TrackPosition): string {
-  return [
-    `Linguagem: ${labelFor(position.languageId)}.`,
-    `Nível: "${position.currentLevelTitle}".`,
-    '',
-    'Assuntos que a pessoa já estudou:',
-    position.coveredTitles.map((t) => `- ${t}`).join('\n') || '- (nenhum)',
-    '',
-    'Exercício a revisar, com gabarito:',
-    JSON.stringify(challenge, null, 2),
-  ].join('\n');
-}
-
-interface Review {
-  approved: boolean;
-  reason: string;
-  difficulty?: string;
-}
-
-function parseReview(raw: unknown): Review {
-  if (typeof raw !== 'object' || raw === null) {
-    return { approved: false, reason: 'revisor não devolveu objeto' };
-  }
-  const data = raw as Record<string, unknown>;
-  // Só `true` explícito aprova: qualquer resposta estranha é reprovação.
-  const approved = data.approved === true;
-  const reason = typeof data.reason === 'string' ? data.reason.slice(0, 400) : '';
-  const difficulty = typeof data.difficulty === 'string'
-    ? data.difficulty
-    : undefined;
-  return { approved, reason, difficulty };
-}
-
-/// Uma tentativa completa: gerar, validar, revisar.
+/// Uma tentativa completa: gerar e validar.
 async function attempt(position: TrackPosition): Promise<GeneratedChallenge> {
   const generator = generatorProvider();
   if (!generator) {
@@ -213,53 +161,20 @@ async function attempt(position: TrackPosition): Promise<GeneratedChallenge> {
     });
   }
 
-  const reviewer = reviewerProvider();
-  if (!reviewer) {
-    // Sem revisor configurado o desafio não vai ao ar. Publicar direto o que
-    // um modelo escreveu, com moeda no fim, é o cenário que a revisão existe
-    // para evitar.
-    throw new PipelineError({
-      stage: 'config',
-      detail: 'OPENAI_API_KEY não está definida (revisor obrigatório)',
-    });
-  }
-
-  let review: Review;
-  try {
-    review = parseReview(
-      await chatJson(reviewer, {
-        system: REVIEWER_SYSTEM,
-        user: reviewerPrompt(challenge, position),
-        timeoutMs: 20000,
-        maxTokens: 300,
-      }),
-    );
-  } catch (error) {
-    throw new PipelineError({
-      stage: 'review',
-      detail: error instanceof AiError ? error.message : String(error),
-    });
-  }
-
-  if (!review.approved) {
-    throw new PipelineError({
-      stage: 'review',
-      detail: review.reason || 'reprovado sem motivo declarado',
-    });
-  }
-
-  // O revisor pode corrigir a dificuldade — ele viu o gabarito. É só isso que
-  // ele pode mexer: o prêmio continua saindo da tabela em código.
-  const difficulty = review.difficulty &&
-      (DIFFICULTIES as readonly string[]).includes(review.difficulty)
-    ? (review.difficulty as Challenge['difficulty'])
-    : challenge.difficulty;
+  // A dificuldade agora é a que o gerador declarou. Ela só é aceita se for um
+  // dos valores conhecidos — o prêmio sai de REWARD_COINS a partir dela, e um
+  // valor inventado pelo modelo não pode virar moeda.
+  const difficulty =
+    (DIFFICULTIES as readonly string[]).includes(challenge.difficulty)
+      ? challenge.difficulty
+      : 'facil';
 
   return {
     challenge: { ...challenge, difficulty },
     generatorModel: `${generator.name}:${generator.model}`,
-    reviewerModel: `${reviewer.name}:${reviewer.model}`,
-    reviewNotes: review.reason || null,
+    // Preenchidos por quem corrige a resposta, não mais na geração.
+    reviewerModel: null,
+    reviewNotes: null,
   };
 }
 

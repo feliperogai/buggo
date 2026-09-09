@@ -89,11 +89,18 @@ git config user.email "contact@caspheon.com"
 Um exercício por dia, gerado sob medida para a trilha e o ponto em que a
 pessoa está. Acertar paga **moedas** — XP continua sendo só dos módulos.
 
-**Duas IAs, de casas diferentes.** DeepSeek escreve, OpenAI revisa. Modelo que
-revisa a si mesmo concorda consigo mesmo; provedores diferentes erram em
-lugares diferentes. Sem a chave do revisor nada vai ao ar: publicar direto o
-que um modelo escreveu, com moeda no fim, é o que a revisão existe para
-evitar.
+**Duas IAs, de casas diferentes, em pontas opostas.** DeepSeek **escreve** o
+exercício e publica sozinho. OpenAI **corrige a resposta** que a pessoa
+enviou. Modelo que revisa a si mesmo concorda consigo mesmo; provedores
+diferentes erram em lugares diferentes — e é na correção que essa
+independência vale moeda.
+
+Houve uma aprovação prévia da OpenAI antes de publicar, e ela foi removida:
+reprovava quase tudo, inclusive soluções que ela mesma declarava corretas,
+por detalhe de espaçamento. O app ficava sem desafio nenhum. A garantia
+mudou de lugar — em vez de barrar o exercício antes, o corretor julga a
+resposta depois, que é o momento em que um erro do gerador de fato prejudica
+alguém.
 
 **Dois formatos.** O preferido é a pessoa **escrever o código à mão**
 (`codeWrite`); múltipla escolha (`quiz`) fica para quando o assunto é
@@ -108,8 +115,14 @@ correção é em duas etapas (`lib/ai/grade.ts`):
    qualquer resposta certa precisa ter ("for", "print"). Falta um, reprova
    sem gastar chamada. A validação recusa uma exigência que a própria solução
    de referência não cumpra — isso reprovaria toda resposta correta.
-2. **A IA revisora lê a solução**, com o enunciado e a resposta de
+2. **A IA corretora lê a solução**, com o enunciado e a resposta de
    referência, e aprova quem resolveu de outro jeito.
+
+Na múltipla escolha a mesma IA decide se a alternativa marcada responde a
+pergunta, **sem receber o gabarito**. Como o gerador publica sem revisão, o
+gabarito dele pode estar errado; conferir contra ele repetiria o erro contra
+quem respondeu certo. O gabarito continua no banco e nunca vai para o
+aparelho — só deixou de ser a palavra final.
 
 Nem a solução nem o `mustContain` saem do servidor: seriam gabarito.
 
