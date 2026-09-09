@@ -56,7 +56,7 @@
     padding: 0 20px;
   }
 
-  /* ── Cabeçalho: marca à esquerda, baixar no canto direito ───────── */
+  /* ── Cabeçalho: marca, links no centro, baixar à direita ────────── */
   header {
     position: sticky;
     top: 0;
@@ -65,8 +65,12 @@
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
   }
+  /* Três colunas: marca à esquerda, links no centro, baixar à direita. As
+     colunas laterais têm a mesma largura para o meio cair no centro da
+     página, e não no espaço que sobra. */
   .bar {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 16px;
     height: 64px;
@@ -80,12 +84,74 @@
     color: var(--ink);
     text-decoration: none;
     letter-spacing: -0.01em;
+    justify-self: start;
   }
   .brand img { width: 32px; height: 32px; border-radius: 9px; display: block; }
-  nav { margin-left: auto; display: flex; align-items: center; gap: 22px; }
-  nav a { color: var(--ink-2); text-decoration: none; font-size: 14px; }
-  nav a:hover { color: var(--ink); }
-  @media (max-width: 720px) { nav .hide-sm { display: none; } }
+
+  .links { display: flex; align-items: center; gap: 26px; }
+  .links a { color: var(--ink-2); text-decoration: none; font-size: 14px; }
+  .links a:hover { color: var(--ink); }
+  .bar-end { justify-self: end; display: flex; align-items: center; gap: 10px; }
+
+  /* Botão do menu: três barras desenhadas em CSS, sem ícone de fonte. */
+  .burger {
+    display: none;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .burger:hover { border-color: var(--brand); }
+  .burger span {
+    display: block;
+    width: 17px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--ink);
+  }
+
+  /* Painel do menu, só nas telas estreitas. */
+  .menu {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 20px 20px;
+  }
+  .menu[data-open="true"] { display: block; }
+  .menu a {
+    display: block;
+    color: var(--ink-2);
+    text-decoration: none;
+    font-size: 15px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .menu a:hover { color: var(--ink); }
+  .menu .btn {
+    display: flex;
+    margin-top: 16px;
+    border-bottom: 0;
+    color: #12091f;
+  }
+
+  @media (max-width: 720px) {
+    /* No estreito o cabeçalho vira marca + hambúrguer; os links e o botão
+       de baixar passam a viver dentro do painel. */
+    .bar { grid-template-columns: 1fr auto; }
+    .links, .bar-end .btn { display: none; }
+    .burger { display: flex; }
+  }
 
   /* ── Botões ─────────────────────────────────────────────────────── */
   .btn {
@@ -298,16 +364,34 @@
       <img src="/img/buggo.png" alt="">
       Buggo
     </a>
-    <nav>
-      <a class="hide-sm" href="#sobre">Sobre</a>
-      <a class="hide-sm" href="#recursos">Recursos</a>
-      <a class="hide-sm" href="/status">Status</a>
+
+    <nav class="links" aria-label="Seções do site">
+      <a href="#sobre">Sobre</a>
+      <a href="#recursos">Recursos</a>
+      <a href="/status">Status</a>
+    </nav>
+
+    <div class="bar-end">
       <a class="btn btn-primary btn-sm"
          href="https://play.google.com/store/apps/details?id=com.buggo.app">
         Baixar
       </a>
-    </nav>
+      <button class="burger" id="burger" type="button"
+              aria-controls="menu" aria-expanded="false" aria-label="Abrir menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
   </div>
+
+  <nav class="menu" id="menu" data-open="false" aria-label="Menu">
+    <a href="#sobre">Sobre</a>
+    <a href="#recursos">Recursos</a>
+    <a href="/status">Status</a>
+    <a class="btn btn-primary"
+       href="https://play.google.com/store/apps/details?id=com.buggo.app">
+      Baixar no Google Play
+    </a>
+  </nav>
 </header>
 
 <main>
@@ -496,6 +580,40 @@
     </div>
   </div>
 </footer>
+
+<script>
+  // Único script da página: abrir e fechar o menu estreito.
+  (() => {
+    const burger = document.getElementById('burger');
+    const menu = document.getElementById('menu');
+
+    const setOpen = (open) => {
+      menu.dataset.open = String(open);
+      burger.setAttribute('aria-expanded', String(open));
+      burger.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+    };
+
+    burger.addEventListener('click', () => {
+      setOpen(menu.dataset.open !== 'true');
+    });
+
+    // Tocar num item leva para a seção; deixar o painel aberto por cima dela
+    // seria esconder justamente o que a pessoa foi ver.
+    menu.addEventListener('click', (event) => {
+      if (event.target.closest('a')) setOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') setOpen(false);
+    });
+
+    // Alargar a janela com o painel aberto deixaria um bloco solto abaixo do
+    // cabeçalho, já que no largo os links voltam para a barra.
+    addEventListener('resize', () => {
+      if (innerWidth > 720) setOpen(false);
+    });
+  })();
+</script>
 
 </body>
 </html>
