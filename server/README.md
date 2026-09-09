@@ -23,6 +23,16 @@ Deixar desligado é o certo aqui: esta API é pública por natureza (o app roda
 em milhares de celulares anônimos) e ela tem a própria autenticação — JWT em
 todas as rotas de dados, e o `/api/leaderboard` é público de propósito.
 
+## O que este projeto serve
+
+Três coisas, no mesmo domínio:
+
+- `/` — o site do Buggo: o que é o app, telas e onde baixar
+  (`public/index.html`).
+- `/status` — o monitor do servidor (`public/status.html`, servido pelo
+  rewrite em `vercel.json`).
+- `/api/*` — a API que o app consome.
+
 ## Deploy (Vercel)
 
 1. Crie um novo projeto na Vercel apontando para este repositório.
@@ -64,8 +74,8 @@ git config user.email "contact@caspheon.com"
 
 ## Monitor
 
-- **Página**: <https://buggo-api.vercel.app/> — a raiz do domínio é o monitor.
-  Traz o estado atual, o gráfico de tempo de resposta (total e banco, as duas
+- **Página**: <https://buggo-api.vercel.app/status> — a raiz do domínio é o
+  site do Buggo; o monitor fica em `/status`. Traz o estado atual, o gráfico de tempo de resposta (total e banco, as duas
   séries em milissegundos no mesmo eixo), a faixa de disponibilidade amostra a
   amostra, cada peça do servidor e o mesmo histórico em tabela. Atualiza
   sozinha a cada 30s e diz explicitamente quando o que voltou foi a tela de
@@ -169,7 +179,7 @@ realmente abriu.
    `daily_completions`).
 2. Ponha `DEEPSEEK_API_KEY` e `OPENAI_API_KEY` nas env vars da Vercel e
    refaça o deploy.
-3. Confira em <https://buggo-api.vercel.app/> — a linha "Desafio do dia (IA)"
+3. Confira em <https://buggo-api.vercel.app/status> — a linha "Desafio do dia (IA)"
    mostra quais modelos estão em uso e quantos desafios já saíram hoje.
 
 O esqueleto das trilhas que o servidor usa para montar o prompt fica em

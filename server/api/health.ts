@@ -11,7 +11,8 @@ import { generatorProvider, reviewerProvider } from '../lib/ai/client';
 /// exatamente isso que estava impedindo o app de funcionar.
 ///
 /// Nenhum valor de variável de ambiente é exposto, só se está definida.
-/// A página na raiz do domínio (`/`) é a leitura visual desta resposta.
+/// A página em `/status` é a leitura visual desta resposta; a raiz do
+/// domínio é o site do Buggo.
 
 type CheckStatus = 'ok' | 'fail' | 'off';
 

@@ -81,9 +81,10 @@ flutter build appbundle \
 Sem nenhum dos dois, o app usa a URL de produção embutida em
 `lib/core/config/env_config.dart` — antes ele caía calado no modo convidado.
 
-## Monitor do servidor
+## Site e monitor
 
-- Página: <https://buggo-api.vercel.app/> — estado atual, gráfico de tempo de
-  resposta e faixa de disponibilidade
+- Site: <https://buggo-api.vercel.app/> — o que é o Buggo, telas e download
+- Monitor: <https://buggo-api.vercel.app/status> — estado atual, gráfico de
+  tempo de resposta e faixa de disponibilidade
 - JSON: `GET /api/health`
 - Checagem automática de hora em hora: `.github/workflows/monitor.yml`

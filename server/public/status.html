@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/img/buggo.png">
+<meta name="color-scheme" content="dark">
+<title>Status — Buggo</title>
+<style>
+  /* Tema escuro único, roxo como cor de acento e da série principal.
+     A paleta foi validada contra a superfície #1a1720: violeta #9085e9 e
+     aqua #199e70 passam separação para daltonismo (ΔE 17.3) e contraste
+     mínimo 3:1. As cores de estado (verde/âmbar/vermelho) são reservadas —
+     nunca viram série — e sempre aparecem com ícone e rótulo junto. */
+  :root {
+    --plane: #100d17;
+    --surface: #1a1720;
+    --line: #2a2434;
+    --grid: #262031;
+    --axis: #38304a;
+
+    --ink: #f5f3fa;
+    --ink-2: #b9b2c9;
+    --muted: #8a8398;
+
+    --brand: #9085e9;
+    --brand-soft: rgba(144, 133, 233, 0.16);
+    --series-2: #199e70;
+
+    --good: #0ca30c;
+    --warning: #fab219;
+    --critical: #d03b3b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 28px 16px 56px;
+    background: var(--plane);
+    color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 880px; margin: 0 auto; }
+
+  h1 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
+  .back {
+    display: inline-block;
+    color: var(--muted);
+    font-size: 13px;
+    text-decoration: none;
+    margin-bottom: 14px;
+  }
+  .back:hover { color: var(--brand); }
+  h2 { font-size: 14px; margin: 0; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 13px; margin: 3px 0 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-top: 16px;
+  }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .card-note { color: var(--muted); font-size: 12px; }
+
+  /* ── Estado atual: número herói + três medidas de apoio ───────────── */
+  .hero { display: flex; align-items: center; gap: 14px; }
+  .hero-icon {
+    width: 42px; height: 42px; border-radius: 12px; flex: 0 0 auto;
+    display: grid; place-items: center; font-size: 20px; font-weight: 700;
+    background: var(--brand-soft); color: var(--brand);
+  }
+  .hero-value { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.2; }
+  .hero-detail { color: var(--ink-2); font-size: 13px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+  .tile { border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; }
+  .tile-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tile-value { font-size: 19px; font-weight: 600; margin-top: 3px; }
+  .tile-value .unit { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 2px; }
+  @media (max-width: 520px) { .tiles { grid-template-columns: 1fr; } }
+
+  /* ── Gráficos ─────────────────────────────────────────────────────── */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 2px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+
+  .plot { position: relative; margin-top: 14px; }
+  .plot svg { display: block; width: 100%; height: 220px; overflow: visible; }
+
+  .strip { display: flex; gap: 2px; align-items: flex-end; height: 34px; margin-top: 14px; }
+  .strip i {
+    flex: 1 1 0; min-width: 0; height: 100%;
+    border-radius: 2px; background: var(--axis); cursor: default;
+  }
+  .strip i[data-status="ok"] { background: var(--good); }
+  .strip i[data-status="degraded"] { background: var(--warning); }
+  .strip i[data-status="down"] { background: var(--critical); }
+  .strip-axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-top: 6px; }
+
+  .tip {
+    position: absolute; pointer-events: none; opacity: 0; transform: translate(-50%, -100%);
+    background: #241f30; border: 1px solid var(--line); border-radius: 9px;
+    padding: 7px 10px; font-size: 12px; line-height: 1.45; white-space: nowrap;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); transition: opacity 0.1s; z-index: 2;
+  }
+  .tip b { font-weight: 600; }
+  .tip .row { display: flex; align-items: center; gap: 6px; }
+
+  .empty { color: var(--muted); font-size: 13px; padding: 28px 0; text-align: center; }
+
+  /* ── Lista de checagens ───────────────────────────────────────────── */
+  ul { list-style: none; margin: 12px 0 0; padding: 0; }
+  li { display: flex; gap: 11px; padding: 11px 0; border-top: 1px solid var(--line); }
+  li:first-child { border-top: 0; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; flex: 0 0 auto; background: var(--muted); }
+  .dot[data-status="ok"] { background: var(--good); }
+  .dot[data-status="off"] { background: var(--warning); }
+  .dot[data-status="fail"] { background: var(--critical); }
+  .check-label { font-weight: 600; font-size: 14px; }
+  .check-detail { color: var(--ink-2); font-size: 13px; margin-top: 1px; overflow-wrap: anywhere; }
+  .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; margin-left: 7px; vertical-align: 1px; font-weight: 400; }
+
+  /* ── Tabela (mesma informação sem depender de cor) ────────────────── */
+  details { margin-top: 16px; }
+  summary { color: var(--brand); font-size: 13px; cursor: pointer; }
+  .scroll { overflow-x: auto; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; }
+  td { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+  footer { margin-top: 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  button {
+    background: var(--brand); color: #12091f; border: 0; border-radius: 10px;
+    padding: 9px 16px; font: inherit; font-weight: 650; cursor: pointer;
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .meta { color: var(--muted); font-size: 12px; }
+  code { background: #00000055; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">&#8592; Voltar ao site do Buggo</a>
+  <h1>Status do servidor</h1>
+  <p class="sub">Leitura ao vivo de <code>/api/health</code>, atualizada a cada 30s.</p>
+
+  <section class="card">
+    <div class="hero">
+      <div class="hero-icon" id="hero-icon">…</div>
+      <div>
+        <div class="hero-value" id="hero-value">Verificando</div>
+        <div class="hero-detail" id="hero-detail">Consultando o servidor.</div>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile">
+        <div class="tile-label">Resposta agora</div>
+        <div class="tile-value" id="tile-now">—</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Banco agora</div>
+        <div class="tile-value" id="tile-db">—</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Sem queda</div>
+        <div class="tile-value" id="tile-uptime">—</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Tempo de resposta</h2>
+      <span class="card-note" id="chart-note">milissegundos · uma amostra por minuto</span>
+    </div>
+    <div class="legend">
+      <span><i class="swatch" style="background: var(--brand)"></i>Resposta total</span>
+      <span><i class="swatch" style="background: var(--series-2)"></i>Banco</span>
+    </div>
+    <div class="plot" id="plot">
+      <svg id="chart" role="img" aria-label="Tempo de resposta do servidor ao longo do tempo"></svg>
+      <div class="tip" id="tip"></div>
+      <div class="empty" id="chart-empty" hidden></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Disponibilidade</h2>
+      <span class="card-note" id="strip-note">uma barra por amostra</span>
+    </div>
+    <div class="legend">
+      <span><i class="swatch" style="background: var(--good)"></i>✓ No ar</span>
+      <span><i class="swatch" style="background: var(--warning)"></i>! Com pendências</span>
+      <span><i class="swatch" style="background: var(--critical)"></i>✕ Fora do ar</span>
+    </div>
+    <div class="plot">
+      <div class="strip" id="strip"></div>
+      <div class="strip-axis"><span id="strip-from"></span><span id="strip-to"></span></div>
+      <div class="empty" id="strip-empty" hidden>Sem histórico para desenhar ainda.</div>
+      <div class="tip" id="strip-tip"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Peças do servidor</h2>
+      <span class="card-note" id="checks-note"></span>
+    </div>
+    <ul id="checks"></ul>
+  </section>
+
+  <details>
+    <summary>Ver o histórico como tabela</summary>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Horário</th><th>Estado</th><th>Resposta</th><th>Banco</th></tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </details>
+
+  <footer>
+    <button id="refresh">Atualizar agora</button>
+    <span class="meta" id="meta"></span>
+  </footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const HISTORY = 120;          // amostras pedidas ao servidor (≈2h)
+  const POLL_MS = 30000;
+
+  const STATES = {
+    ok:          { icon: '✓', title: 'Tudo funcionando',        color: 'var(--good)' },
+    degraded:    { icon: '!', title: 'Funcionando com pendências', color: 'var(--warning)' },
+    down:        { icon: '✕', title: 'Servidor fora do ar',     color: 'var(--critical)' },
+    unreachable: { icon: '✕', title: 'Servidor inacessível',    color: 'var(--critical)' },
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const svg = $('chart');
+  const tip = $('tip');
+  const stripTip = $('strip-tip');
+  const button = $('refresh');
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (name, attrs) => {
+    const node = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    return node;
+  };
+  const hhmm = (iso) =>
+    new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  let samples = [];
+
+  // ── Estado atual ───────────────────────────────────────────────────
+  function showState(state, detail) {
+    const info = STATES[state] || STATES.unreachable;
+    $('hero-icon').textContent = info.icon;
+    $('hero-icon').style.color = info.color;
+    $('hero-value').textContent = info.title;
+    $('hero-detail').textContent = detail;
+  }
+
+  // ── Gráfico de linha ───────────────────────────────────────────────
+  // Duas séries no mesmo eixo porque as duas são milissegundos. Escala
+  // separada por série seria inventar uma correlação que não existe.
+  function drawChart() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    const empty = $('chart-empty');
+    if (samples.length < 2) {
+      empty.hidden = false;
+      svg.style.display = 'none';
+      return;
+    }
+    empty.hidden = true;
+    svg.style.display = 'block';
+
+    const W = Math.max(svg.clientWidth || 0, 280);
+    const H = 220;
+    const pad = { top: 14, right: 46, bottom: 24, left: 44 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+    const values = samples.flatMap((s) => [s.totalMs, s.dbMs]).filter((v) => v != null);
+    const rawMax = Math.max(...values, 1);
+    // Teto arredondado para cima, para os rótulos do eixo saírem redondos.
+    const step = Math.pow(10, Math.floor(Math.log10(rawMax))) / 2;
+    const max = Math.max(Math.ceil(rawMax / step) * step, step);
+
+    const x = (i) => pad.left + (samples.length === 1 ? plotW : (i / (samples.length - 1)) * plotW);
+    const y = (v) => pad.top + plotH - (v / max) * plotH;
+
+    // Grade e eixo: linhas sólidas de um tom só acima da superfície.
+    for (let i = 0; i <= 4; i++) {
+      const value = (max / 4) * i;
+      const gy = y(value);
+      svg.appendChild(el('line', {
+        x1: pad.left, x2: pad.left + plotW, y1: gy, y2: gy,
+        stroke: i === 0 ? 'var(--axis)' : 'var(--grid)', 'stroke-width': 1,
+      }));
+      const label = el('text', {
+        x: pad.left - 8, y: gy + 4, 'text-anchor': 'end',
+        fill: 'var(--muted)', 'font-size': 11,
+      });
+      label.textContent = Math.round(value);
+      svg.appendChild(label);
+    }
+
+    for (const [index, at] of [[0, 'start'], [samples.length - 1, 'end']]) {
+      const t = el('text', {
+        x: x(index), y: H - 6, 'text-anchor': at,
+        fill: 'var(--muted)', 'font-size': 11,
+      });
+      t.textContent = hhmm(samples[index].at);
+      svg.appendChild(t);
+    }
+
+    const series = [
+      { key: 'totalMs', color: 'var(--brand)', name: 'Total' },
+      { key: 'dbMs', color: 'var(--series-2)', name: 'Banco' },
+    ];
+
+    const ends = [];
+    for (const s of series) {
+      // O traço é interrompido onde não há medida (banco fora do ar, por
+      // exemplo). Ligar os dois lados da lacuna desenharia um dado que não
+      // foi medido.
+      let d = '';
+      let open = false;
+      let last = null;
+      samples.forEach((sample, i) => {
+        const value = sample[s.key];
+        if (value == null) { open = false; return; }
+        const px = x(i), py = y(value);
+        d += (open ? 'L' : 'M') + px.toFixed(1) + ' ' + py.toFixed(1) + ' ';
+        open = true;
+        last = { x: px, y: py, value };
+      });
+      if (!last) continue;
+
+      svg.appendChild(el('path', {
+        d: d.trim(), fill: 'none', stroke: s.color, 'stroke-width': 2,
+        'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+      }));
+      svg.appendChild(el('circle', {
+        cx: last.x, cy: last.y, r: 4.5,
+        fill: s.color, stroke: 'var(--surface)', 'stroke-width': 2,
+      }));
+      ends.push({ x: last.x, y: last.y, value: last.value, color: s.color });
+    }
+
+    // Só a ponta de cada série é rotulada — um número em cada ponto vira
+    // ruído. Quando as duas pontas quase se tocam, a de baixo desce o
+    // suficiente para os rótulos não se sobreporem.
+    ends.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) {
+      if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
+    }
+    for (const end of ends) {
+      const tagText = el('text', {
+        x: end.x + 9, y: end.y + 4, fill: end.color, 'font-size': 11, 'font-weight': 600,
+      });
+      tagText.textContent = Math.round(end.value);
+      svg.appendChild(tagText);
+    }
+
+    // Camada de leitura: linha-guia + tooltip seguindo a amostra mais próxima.
+    const guide = el('line', {
+      x1: 0, x2: 0, y1: pad.top, y2: pad.top + plotH,
+      stroke: 'var(--brand)', 'stroke-width': 1, opacity: 0,
+    });
+    svg.appendChild(guide);
+
+    const hit = el('rect', {
+      x: pad.left, y: pad.top, width: plotW, height: plotH,
+      fill: 'transparent', style: 'cursor: crosshair',
+    });
+    svg.appendChild(hit);
+
+    const move = (event) => {
+      const box = svg.getBoundingClientRect();
+      const px = ((event.clientX - box.left) / box.width) * W;
+      const ratio = (px - pad.left) / plotW;
+      const i = Math.max(0, Math.min(samples.length - 1, Math.round(ratio * (samples.length - 1))));
+      const sample = samples[i];
+      guide.setAttribute('x1', x(i));
+      guide.setAttribute('x2', x(i));
+      guide.setAttribute('opacity', 0.6);
+      tip.innerHTML =
+        '<b>' + hhmm(sample.at) + '</b>' +
+        '<div class="row"><i class="swatch" style="background:var(--brand)"></i>Total ' + sample.totalMs + ' ms</div>' +
+        (sample.dbMs == null ? '' :
+          '<div class="row"><i class="swatch" style="background:var(--series-2)"></i>Banco ' + sample.dbMs + ' ms</div>');
+      tip.style.left = ((x(i) / W) * 100) + '%';
+      tip.style.top = (pad.top - 6) + 'px';
+      tip.style.opacity = 1;
+    };
+    const leave = () => { guide.setAttribute('opacity', 0); tip.style.opacity = 0; };
+    hit.addEventListener('mousemove', move);
+    hit.addEventListener('mouseleave', leave);
+    hit.addEventListener('touchmove', (e) => { move(e.touches[0]); e.preventDefault(); }, { passive: false });
+    hit.addEventListener('touchend', leave);
+  }
+
+  // ── Faixa de disponibilidade ───────────────────────────────────────
+  function drawStrip() {
+    const strip = $('strip');
+    strip.innerHTML = '';
+    // Cada barra precisa de largura mínima para ser vista, então em tela
+    // estreita a faixa mostra só as amostras mais recentes em vez de
+    // transbordar do cartão. O rótulo embaixo acompanha o recorte.
+    const width = strip.clientWidth || 320;
+    const fit = Math.max(12, Math.floor((width + 2) / 5));
+    const shown = samples.slice(-fit);
+    $('strip-empty').hidden = shown.length > 0;
+    $('strip-note').textContent = shown.length < samples.length
+      ? 'últimas ' + shown.length + ' de ' + samples.length + ' amostras'
+      : 'uma barra por amostra';
+    for (const sample of shown) {
+      const bar = document.createElement('i');
+      bar.dataset.status = sample.status;
+      bar.addEventListener('mouseenter', () => {
+        const box = bar.getBoundingClientRect();
+        const parent = strip.getBoundingClientRect();
+        stripTip.textContent =
+          hhmm(sample.at) + ' · ' + (STATES[sample.status] || STATES.unreachable).title +
+          ' · ' + sample.totalMs + ' ms';
+        stripTip.style.left = (box.left - parent.left + box.width / 2) + 'px';
+        stripTip.style.top = '-4px';
+        stripTip.style.opacity = 1;
+      });
+      bar.addEventListener('mouseleave', () => { stripTip.style.opacity = 0; });
+      strip.appendChild(bar);
+    }
+    $('strip-from').textContent = shown.length ? hhmm(shown[0].at) : '';
+    $('strip-to').textContent = shown.length ? hhmm(shown[shown.length - 1].at) : '';
+  }
+
+  function drawTable() {
+    const body = $('table-body');
+    body.innerHTML = '';
+    for (const sample of [...samples].reverse()) {
+      const info = STATES[sample.status] || STATES.unreachable;
+      const row = document.createElement('tr');
+      for (const value of [
+        new Date(sample.at).toLocaleString('pt-BR'),
+        info.icon + ' ' + info.title,
+        sample.totalMs + ' ms',
+        sample.dbMs == null ? '—' : sample.dbMs + ' ms',
+      ]) {
+        const cell = document.createElement('td');
+        cell.textContent = value;
+        row.appendChild(cell);
+      }
+      body.appendChild(row);
+    }
+  }
+
+  function drawChecks(checks) {
+    const list = $('checks');
+    list.innerHTML = '';
+    for (const check of checks) {
+      const item = document.createElement('li');
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.dataset.status = check.status;
+      item.appendChild(dot);
+
+      const body = document.createElement('div');
+      const label = document.createElement('div');
+      label.className = 'check-label';
+      label.textContent = check.label;
+      if (!check.required) {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = 'opcional';
+        label.appendChild(tag);
+      }
+      const detail = document.createElement('div');
+      detail.className = 'check-detail';
+      detail.textContent = (check.status === 'ok' ? '✓ ' : check.status === 'off' ? '! ' : '✕ ') + check.detail;
+
+      body.appendChild(label);
+      body.appendChild(detail);
+      item.appendChild(body);
+      list.appendChild(item);
+    }
+  }
+
+  /// Esvazia gráfico, faixa e checagens com uma explicação no lugar — caixa
+  /// vazia sem texto parece bug da página, não servidor fora do ar.
+  function clearCharts(message) {
+    samples = [];
+    $('checks').innerHTML = '';
+    $('checks-note').textContent = '';
+    $('table-body').innerHTML = '';
+    $('strip').innerHTML = '';
+    $('strip-from').textContent = '';
+    $('strip-to').textContent = '';
+    $('strip-empty').hidden = false;
+    $('strip-empty').textContent = message;
+    const empty = $('chart-empty');
+    empty.hidden = false;
+    empty.textContent = message;
+    svg.style.display = 'none';
+  }
+
+  // ── Consulta ───────────────────────────────────────────────────────
+  async function check() {
+    button.disabled = true;
+    const started = Date.now();
+    try {
+      const response = await fetch('/api/health?history=' + HISTORY, { cache: 'no-store' });
+      const text = await response.text();
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (_) {
+        // HTML no lugar de JSON é quase sempre a tela de login da Vercel
+        // (Deployment Protection) — o mesmo muro que bloqueia o app.
+        clearCharts('Sem leitura do servidor agora.');
+        showState('unreachable',
+          'O servidor respondeu HTML em vez de JSON (HTTP ' + response.status + '). ' +
+          'Se for a tela de login da Vercel, desligue a Deployment Protection em ' +
+          'Settings > Deployment Protection — é ela que também bloqueia o app.');
+        return;
+      }
+
+      showState(data.status, data.summary || '');
+      drawChecks(data.checks || []);
+      $('checks-note').textContent =
+        (data.checks || []).filter((c) => c.status === 'ok').length + ' de ' +
+        (data.checks || []).length + ' no ar';
+
+      samples = (data.history || []).filter((s) => Number.isFinite(s.totalMs));
+      $('chart-empty').textContent = data.historyNote ||
+        'Ainda sem histórico suficiente. A primeira amostra foi gravada agora.';
+      $('chart-note').textContent = samples.length
+        ? samples.length + ' amostras · uma por minuto · milissegundos'
+        : 'milissegundos';
+      drawChart();
+      drawStrip();
+      drawTable();
+
+      const current = samples[samples.length - 1];
+      $('tile-now').innerHTML = current
+        ? current.totalMs + '<span class="unit">ms</span>'
+        : Math.round(data.durationMs) + '<span class="unit">ms</span>';
+      const dbCheck = (data.checks || []).find((c) => c.id === 'database');
+      $('tile-db').innerHTML = dbCheck && dbCheck.durationMs != null
+        ? dbCheck.durationMs + '<span class="unit">ms</span>'
+        : '—';
+      const up = samples.filter((s) => s.status !== 'down').length;
+      $('tile-uptime').innerHTML = samples.length
+        ? Math.round((up / samples.length) * 100) + '<span class="unit">% · ' + up + '/' + samples.length + '</span>'
+        : '—';
+
+      $('meta').textContent = [
+        'ambiente: ' + (data.environment || '—'),
+        data.region ? 'região: ' + data.region : null,
+        data.commit ? 'commit: ' + data.commit : null,
+        'ida e volta: ' + (Date.now() - started) + ' ms',
+        'às ' + new Date().toLocaleTimeString('pt-BR'),
+      ].filter(Boolean).join(' · ');
+    } catch (error) {
+      clearCharts('Sem leitura do servidor agora.');
+      showState('unreachable', 'Não foi possível falar com o servidor: ' + error.message);
+      $('meta').textContent = 'tentativa às ' + new Date().toLocaleTimeString('pt-BR');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { drawChart(); drawStrip(); }, 150);
+  });
+
+  button.addEventListener('click', check);
+  check();
+  setInterval(check, POLL_MS);
+})();
+</script>
+</body>
+</html>
