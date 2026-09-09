@@ -50,6 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         last_life_lost_at = ${(body.lastLifeLostAt as string) ?? null},
         unlimited_lives_until = ${(body.unlimitedLivesUntil as string) ?? null},
         streak_freezes = ${(body.streakFreezes as number) ?? 0},
+        last_ad_refill_at = ${(body.lastAdRefillAt as string) ?? null},
         updated_at = now()
       where id = ${userId}
       returning *

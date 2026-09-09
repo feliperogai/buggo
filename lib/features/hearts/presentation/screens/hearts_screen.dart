@@ -9,6 +9,7 @@ import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/models/user_profile.dart';
 import '../../../../shared/providers/user_provider.dart';
+import '../../data/rewarded_ad_service.dart';
 
 class HeartsScreen extends ConsumerStatefulWidget {
   const HeartsScreen({super.key});
@@ -24,6 +25,11 @@ class _HeartsScreenState extends ConsumerState<HeartsScreen> {
   void initState() {
     super.initState();
     ref.read(userProvider.notifier).refreshLives();
+    // Carrega o anúncio já na abertura: `load` leva alguns segundos e, feito
+    // só no toque, o botão pareceria travado.
+    if (ref.read(userProvider.notifier).canWatchAdForLives) {
+      unawaited(RewardedAdService.instance.preload());
+    }
     _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       ref.read(userProvider.notifier).refreshLives();
       if (mounted) setState(() {});
@@ -34,6 +40,25 @@ class _HeartsScreenState extends ConsumerState<HeartsScreen> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  bool _showingAd = false;
+
+  Future<void> _watchAdForLives() async {
+    setState(() => _showingAd = true);
+    final shown = await RewardedAdService.instance.show(
+      onEarned: () {
+        // Só chega aqui quando o Google confirma que o anúncio foi assistido.
+        final ok = ref.read(userProvider.notifier).refillLivesFromAd();
+        _showResult(ok, 'Vidas recarregadas!',
+            'Você já usou o anúncio de hoje.');
+      },
+    );
+    if (!mounted) return;
+    setState(() => _showingAd = false);
+    if (!shown) {
+      _showResult(false, '', 'O anúncio ainda não carregou. Tente em instantes.');
+    }
   }
 
   String _formatCountdown(Duration d) {
@@ -70,6 +95,7 @@ class _HeartsScreenState extends ConsumerState<HeartsScreen> {
 
     final unlimited = user.hasUnlimitedLives;
     final full = user.lives >= UserProfile.maxLives;
+    final notifier = ref.read(userProvider.notifier);
     final missing = UserProfile.maxLives - user.lives;
     final wait = user.timeUntilNextLife;
 
@@ -161,6 +187,28 @@ class _HeartsScreenState extends ConsumerState<HeartsScreen> {
                     : () => context.go(AppRouter.market),
               ).animate(delay: 80.ms).slideY(begin: 0.1).fade(),
               const SizedBox(height: 12),
+
+              // Grátis vem antes das opções pagas: esconder a alternativa sem
+              // custo atrás das compras é o tipo de padrão que o usuário
+              // percebe e passa a desconfiar do resto.
+              if (!unlimited)
+                _HeartTile(
+                  icon: Icons.play_circle_fill_rounded,
+                  iconColor: AppColors.success,
+                  title: 'Assistir anúncio',
+                  subtitle: full
+                      ? 'Vidas cheias'
+                      : notifier.usedAdRefillToday
+                          ? 'Você já usou o de hoje · volta amanhã'
+                          : _showingAd
+                              ? 'Abrindo...'
+                              : 'Recarrega todas as vidas · 1x por dia',
+                  enabled: notifier.canWatchAdForLives && !_showingAd,
+                  onTap: (notifier.canWatchAdForLives && !_showingAd)
+                      ? _watchAdForLives
+                      : null,
+                ).animate(delay: 40.ms).slideY(begin: 0.1).fade(),
+              if (!unlimited) const SizedBox(height: 12),
 
               _HeartTile(
                 icon: Icons.favorite_rounded,

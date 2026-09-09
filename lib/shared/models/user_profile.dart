@@ -23,6 +23,11 @@ class UserProfile {
   final DateTime? unlimitedLivesUntil; // Buggo+ monthly plan expiry
   final int streakFreezes;
 
+  /// Quando o usuário assistiu ao último anúncio que recarregou as vidas.
+  /// Fica no perfil (e não só no aparelho) porque o limite é diário: guardado
+  /// local, bastava limpar os dados do app para assistir de novo.
+  final DateTime? lastAdRefillAt;
+
   const UserProfile({
     this.id,
     this.email,
@@ -42,6 +47,7 @@ class UserProfile {
     this.lastLifeLostAt,
     this.unlimitedLivesUntil,
     this.streakFreezes = 0,
+    this.lastAdRefillAt,
   });
 
   UserProfile copyWith({
@@ -65,6 +71,7 @@ class UserProfile {
     bool clearLastLifeLostAt = false,
     DateTime? unlimitedLivesUntil,
     int? streakFreezes,
+    DateTime? lastAdRefillAt,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -88,6 +95,7 @@ class UserProfile {
           : (lastLifeLostAt ?? this.lastLifeLostAt),
       unlimitedLivesUntil: unlimitedLivesUntil ?? this.unlimitedLivesUntil,
       streakFreezes: streakFreezes ?? this.streakFreezes,
+      lastAdRefillAt: lastAdRefillAt ?? this.lastAdRefillAt,
     );
   }
 
@@ -110,6 +118,7 @@ class UserProfile {
         'lastLifeLostAt': lastLifeLostAt?.toIso8601String(),
         'unlimitedLivesUntil': unlimitedLivesUntil?.toIso8601String(),
         'streakFreezes': streakFreezes,
+        'lastAdRefillAt': lastAdRefillAt?.toIso8601String(),
       };
 
   factory UserProfile.fromMap(Map<dynamic, dynamic> map) => UserProfile(
@@ -139,6 +148,9 @@ class UserProfile {
             ? DateTime.tryParse(map['unlimitedLivesUntil'] as String)
             : null,
         streakFreezes: map['streakFreezes'] as int? ?? 0,
+        lastAdRefillAt: map['lastAdRefillAt'] != null
+            ? DateTime.tryParse(map['lastAdRefillAt'] as String)
+            : null,
       );
 
   bool get isGuest => id == null;

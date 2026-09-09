@@ -40,6 +40,13 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- App ID do AdMob. Obrigatorio: sem esta chave o SDK derruba o
+             app no arranque. O valor abaixo e o ID de TESTE do Google;
+             troque pelo seu App ID real antes de publicar, senao os
+             anuncios nao faturam. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

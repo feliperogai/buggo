@@ -126,3 +126,9 @@ create table if not exists daily_completions (
 
 create index if not exists daily_completions_user_idx
   on daily_completions (user_id, challenge_date desc);
+
+-- ── Recarga de vidas por anúncio ─────────────────────────────────────────
+-- Guarda quando o usuário assistiu ao último anúncio recompensado. O limite
+-- é de uma recarga por dia; guardado só no aparelho, bastava limpar os dados
+-- do app para assistir de novo.
+alter table users add column if not exists last_ad_refill_at timestamptz;
