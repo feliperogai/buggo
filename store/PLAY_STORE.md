@@ -107,38 +107,66 @@ Respostas conferidas contra o código (`server/schema.sql`, `server/api/`,
 do login com Google, das compras no Play, do desafio do dia por IA e dos
 anúncios do AdMob — a versão anterior era de 11/08 e ficou incorreta.
 
-**O app coleta ou compartilha dados do usuário?** → **Sim**
-**Os dados são criptografados em trânsito?** → **Sim** (HTTPS)
-**O usuário pode pedir exclusão dos dados?** → **Sim** (por e-mail)
+### Passo 1 — Visão geral
 
-| Tipo de dado | Coletado | Compartilhado | Obrigatório | Finalidade |
+| Pergunta | Resposta |
+|---|---|
+| O app coleta ou compartilha os tipos de dados obrigatórios? | **Sim** |
+| Todos os dados são criptografados em trânsito? | **Sim** — todo tráfego é HTTPS |
+| Você oferece um jeito de o usuário pedir a exclusão dos dados? | **Sim** — por e-mail, descrito na política |
+
+### Passo 2 — Tipos de dados a marcar
+
+O formulário tem categorias fixas. Marque **exatamente** estas sete e nenhuma
+outra:
+
+| Categoria do Play | Subtipo | O que é no Buggo |
+|---|---|---|
+| Informações pessoais | Nome | Nome do perfil, exibido no ranking |
+| Informações pessoais | Endereço de e-mail | Login e recuperação de senha |
+| Informações pessoais | IDs de usuário | `users.id` e o `google_id` de quem entra pelo Google |
+| Informações financeiras | Histórico de compras | Tabela `purchases` |
+| Atividade no app | Interações no app | XP, moedas, vidas, sequência, lições concluídas |
+| Atividade no app | Outro conteúdo gerado pelo usuário | O código/alternativa respondida no desafio do dia |
+| Dispositivo ou outros IDs | ID do dispositivo ou outros IDs | ID de publicidade, usado pelo AdMob |
+
+### Passo 3 — Detalhes de cada tipo
+
+Para cada um, o Play pergunta as mesmas quatro coisas:
+
+| Tipo | Coletado | Compartilhado | Obrigatório? | Finalidades |
 |---|---|---|---|---|
-| E-mail | Sim | Não | Não (só com conta) | Gerenciamento da conta |
-| Nome | Sim | Não | Não | Gerenciamento da conta, funcionalidade do app |
-| Senha | Sim | Não | Não | Gerenciamento da conta |
-| Ações no app (progresso, XP, lições) | Sim | Não | Não | Funcionalidade do app |
-| **ID de publicidade** | **Sim** | **Sim** | Não | **Publicidade ou marketing** |
-| **Histórico de compras** | **Sim** | Não | Não | Funcionalidade do app |
-| **Outro conteúdo gerado pelo usuário** | **Sim** | **Sim** | Não | Funcionalidade do app |
+| Nome | Sim | Não | **Opcional** | Gerenciamento de contas, Funcionalidade do app |
+| Endereço de e-mail | Sim | Não | **Opcional** | Gerenciamento de contas |
+| IDs de usuário | Sim | Não | **Opcional** | Gerenciamento de contas, Funcionalidade do app |
+| Histórico de compras | Sim | Não | **Opcional** | Funcionalidade do app |
+| Interações no app | Sim | Não | **Opcional** | Funcionalidade do app |
+| Outro conteúdo gerado pelo usuário | Sim | **Sim** | **Opcional** | Funcionalidade do app |
+| ID do dispositivo ou outros IDs | Sim | **Sim** | **Opcional** | **Publicidade ou marketing** |
 
-Sobre as três linhas novas:
+Em "processado de forma efêmera", responda **não** para todos: tudo isso é
+gravado, não usado e descartado na hora.
 
-- **ID de publicidade.** O `google_mobile_ads` declara
-  `com.google.android.gms.permission.AD_ID` no manifesto de release — conferido
-  no manifesto mesclado. Como o AdMob usa esse identificador para exibir e medir
-  anúncios, ele conta como coletado **e** compartilhado, com finalidade de
-  publicidade. Declarar isso é obrigatório desde que a permissão existe no app.
-- **Histórico de compras.** A tabela `purchases` guarda produto, data e token de
-  cada compra confirmada, para creditar o item e impedir que o mesmo token
-  credite duas vezes. Fica só no nosso servidor.
-- **Outro conteúdo gerado pelo usuário.** O código que a pessoa escreve no
-  desafio do dia é enviado para a **OpenAI** na correção, e o progresso (nível e
-  títulos das lições concluídas) vai para a **DeepSeek** na geração. Nenhum dado
-  identificador acompanha esses envios — nem nome, nem e-mail, nem id da conta —
-  mas o conteúdo sai para terceiros, então é compartilhamento.
+Tudo é **opcional** porque o app funciona inteiro no modo convidado, sem conta
+— e assistir anúncio é escolha do usuário. "Obrigatório" no formulário
+significa que o app não funciona sem o dado, o que não é o caso de nenhum.
 
-**Vidas, moedas e sequência** entram em "Ações no app", junto com o progresso;
-não são um tipo separado no formulário.
+Os dois **compartilhados** são os que saem para fora:
+
+- **Outro conteúdo gerado pelo usuário** → vai para OpenAI (correção) e
+  DeepSeek (geração). Sem nome, e-mail ou id junto: esses serviços não têm como
+  saber de quem é a resposta.
+- **ID do dispositivo ou outros IDs** → vai para o AdMob. A permissão
+  `com.google.android.gms.permission.AD_ID` entra no manifesto de release pelo
+  `com.google.android.gms:play-services-ads-api`, conferido no relatório de
+  merge. Marque **só** "Publicidade ou marketing" como finalidade: não há
+  analytics nem atribuição no projeto.
+
+**Senha não é declarada.** O formulário do Play não tem categoria para
+credencial — as opções de "Informações pessoais" vão de nome e e-mail a
+telefone e etnia, nenhuma cobre senha. Ela é guardada só como hash bcrypt e
+serve exclusivamente para autenticar. Se preferir ser conservador, o encaixe
+mais próximo seria "Informações pessoais > Outras informações".
 
 **Fotos → NÃO declare como coletadas.** O app usa a foto só para o avatar, e
 a imagem **nunca sai do aparelho** —
