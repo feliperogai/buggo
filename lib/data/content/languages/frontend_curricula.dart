@@ -196,6 +196,101 @@ const List<CourseLevel> javascriptCurriculum = [
       ),
     ],
   ),
+  CourseLevel(
+    id: 2,
+    languageId: 'javascript',
+    title: 'JavaScript: dados de verdade',
+    description: 'Objetos, listas que se transformam e dados que vêm de fora',
+    emoji: 'OB',
+    lessons: [
+      Lesson(
+        id: 'js_alem_0',
+        title: 'Um objeto guarda vários campos',
+        description: 'Quando uma variável não basta',
+        type: LessonType.explanation,
+        explanation:
+            'Guardar o nome, a idade e o e-mail de alguém em três variáveis separadas funciona até aparecer a segunda pessoa. Objeto resolve isso: um valor só, com campos nomeados dentro.\n\nCada campo tem uma chave e um valor. Você lê pelo nome da chave, não pela posição — é o que torna o código legível seis meses depois.',
+        codeSnippet:
+            'const aluno = {\n  nome: "Ana",\n  idade: 16,\n};\n\nconsole.log(aluno.nome);',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+      Lesson(
+        id: 'js_alem_1',
+        title: 'Lendo um campo',
+        description: 'O ponto entre o objeto e a chave',
+        type: LessonType.quiz,
+        question:
+            'O objeto `livro` tem o campo `titulo`. Como você lê esse valor?',
+        options: [
+          LessonOption(text: 'livro.titulo', isCorrect: true),
+          LessonOption(text: 'livro->titulo', isCorrect: false),
+          LessonOption(text: 'livro::titulo', isCorrect: false),
+        ],
+        hint: 'Em JavaScript é sempre o ponto.',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+      Lesson(
+        id: 'js_alem_2',
+        title: 'Transformando uma lista',
+        description: 'Monte a linha que dobra cada nota',
+        type: LessonType.codeChallenge,
+        question:
+            'A partir de `notas`, crie `dobradas` com cada valor multiplicado por 2.',
+        codeTemplate:
+            'const notas = [5, 7, 9];\nconst dobradas = notas.{0}(n => n * 2);\nconsole.log(dobradas);',
+        availableTokens: ['map', 'filter', 'push', 'forEach'],
+        correctTokens: ['map'],
+        hint: 'É o que devolve uma lista nova, do mesmo tamanho.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'js_alem_3',
+        title: 'map ou filter',
+        description: 'Duas ferramentas parecidas, usos diferentes',
+        type: LessonType.quiz,
+        question:
+            'Você quer só as notas maiores que 7, e nada além disso. Qual método usar?',
+        options: [
+          LessonOption(text: 'filter', isCorrect: true),
+          LessonOption(text: 'map', isCorrect: false),
+          LessonOption(text: 'sort', isCorrect: false),
+        ],
+        hint: 'Um transforma cada item, o outro escolhe quais ficam.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'js_alem_4',
+        title: 'Texto que vira objeto',
+        description: 'Complete a leitura do JSON',
+        type: LessonType.codeChallenge,
+        question:
+            'A API devolveu um texto JSON. Transforme em objeto para poder ler os campos.',
+        codeTemplate:
+            'const texto = "{\\"nome\\": \\"Ana\\"}";\nconst dados = JSON.{0}(texto);\nconsole.log(dados.nome);',
+        availableTokens: ['parse', 'stringify', 'read', 'toObject'],
+        correctTokens: ['parse'],
+        hint: 'Analisar o texto é "parse". O caminho contrário é "stringify".',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'js_alem_5',
+        title: 'Coisas que demoram',
+        description: 'Por que existe async e await',
+        type: LessonType.explanation,
+        explanation:
+            'Buscar dados na internet leva tempo. Se o navegador ficasse parado esperando, a página travava a cada requisição.\n\nPor isso essas funções devolvem uma promessa de resposta. `await` diz "siga daqui quando a resposta chegar", e ele só pode aparecer dentro de uma função marcada com `async`.',
+        codeSnippet:
+            'async function carregar() {\n  const resposta = await fetch("/api/notas");\n  const notas = await resposta.json();\n  console.log(notas);\n}',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+    ],
+  ),
 ];
 
 const List<CourseLevel> typescriptCurriculum = [
@@ -387,6 +482,102 @@ const List<CourseLevel> typescriptCurriculum = [
             'Tipos existem para o editor te ajudar: ele completa nomes, mostra o que a função devolve e recusa o erro antes de rodar.\n\nO próximo passo é tipar a resposta de uma API e ver o editor apontando cada campo que você esqueceu de tratar. É onde o TypeScript economiza mais tempo.',
         xpReward: 14,
         coinReward: 7,
+      ),
+    ],
+  ),
+  CourseLevel(
+    id: 2,
+    languageId: 'typescript',
+    title: 'TypeScript: tipos que se combinam',
+    description: 'Uniões, genéricos e o editor trabalhando por você',
+    emoji: 'TC',
+    lessons: [
+      Lesson(
+        id: 'ts_alem_0',
+        title: 'Um valor, dois tipos possíveis',
+        description: 'O tipo união',
+        type: LessonType.explanation,
+        explanation:
+            'Às vezes um campo pode legitimamente ser de dois tipos. O identificador de um pedido pode chegar como número do banco ou como texto da URL.\n\nA barra vertical descreve exatamente isso. E o TypeScript passa a cobrar: antes de usar como texto, você tem que provar que é texto.',
+        codeSnippet:
+            'let id: number | string;\n\nid = 42;\nid = "42";',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+      Lesson(
+        id: 'ts_alem_1',
+        title: 'Separando os casos',
+        description: 'Como provar de que tipo é',
+        type: LessonType.quiz,
+        question:
+            'Dentro de uma função, `valor` é `string | number`. O que confere se ele é texto agora?',
+        options: [
+          LessonOption(text: 'typeof valor === "string"', isCorrect: true),
+          LessonOption(text: 'valor instanceof String', isCorrect: false),
+          LessonOption(text: 'valor.isString()', isCorrect: false),
+        ],
+        hint: 'Para tipos básicos, o operador é o mesmo do JavaScript.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'ts_alem_2',
+        title: 'Função que serve para qualquer tipo',
+        description: 'Complete o genérico',
+        type: LessonType.codeChallenge,
+        question:
+            'A função devolve o primeiro item de qualquer lista, mantendo o tipo dos itens.',
+        codeTemplate:
+            'function primeiro<T>(lista: T[]): {0} {\n  return lista[0];\n}',
+        availableTokens: ['T', 'any', 'void', 'unknown'],
+        correctTokens: ['T'],
+        hint:
+            'Devolve um item da lista, então é o mesmo tipo que está dentro dela.',
+        xpReward: 20,
+        coinReward: 10,
+      ),
+      Lesson(
+        id: 'ts_alem_3',
+        title: 'any apaga o TypeScript',
+        description: 'O tipo que desliga a checagem',
+        type: LessonType.quiz,
+        question: 'Por que trocar `T` por `any` no exemplo anterior é ruim?',
+        options: [
+          LessonOption(
+              text: 'O editor perde o tipo e para de avisar erros', isCorrect: true),
+          LessonOption(text: 'O código deixa de compilar', isCorrect: false),
+          LessonOption(text: 'A função fica mais lenta', isCorrect: false),
+        ],
+        hint: 'O custo do `any` é sempre o mesmo: você fica sem rede.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'ts_alem_4',
+        title: 'Todos os campos opcionais',
+        description: 'Monte o tipo utilitário',
+        type: LessonType.codeChallenge,
+        question:
+            'A função de edição recebe só os campos que mudaram do tipo `Aluno`.',
+        codeTemplate:
+            'interface Aluno {\n  nome: string;\n  idade: number;\n}\n\nfunction editar(mudancas: {0}<Aluno>) {}',
+        availableTokens: ['Partial', 'Readonly', 'Record', 'Required'],
+        correctTokens: ['Partial'],
+        hint: 'Parte do objeto, não o objeto inteiro.',
+        xpReward: 20,
+        coinReward: 10,
+      ),
+      Lesson(
+        id: 'ts_alem_5',
+        title: 'Tipando o que vem da API',
+        description: 'Onde o TypeScript paga por si',
+        type: LessonType.explanation,
+        explanation:
+            'A resposta de uma API chega como `any` por padrão. Descrever o formato esperado num tipo faz o editor apontar cada campo que você esqueceu de tratar.\n\nÉ o lugar onde o TypeScript economiza mais tempo: o campo que às vezes vem nulo aparece como erro no editor, não como tela branca no celular de alguém.',
+        codeSnippet:
+            'interface Nota {\n  valor: number;\n  comentario?: string;\n}\n\nconst notas: Nota[] = await resposta.json();',
+        xpReward: 16,
+        coinReward: 8,
       ),
     ],
   ),

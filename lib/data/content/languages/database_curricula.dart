@@ -195,4 +195,99 @@ const List<CourseLevel> queriesCurriculum = [
       ),
     ],
   ),
+  CourseLevel(
+    id: 2,
+    languageId: 'queries',
+    title: 'Consultas: mudando dados com segurança',
+    description: 'INSERT, UPDATE, DELETE, NULL e subconsultas',
+    emoji: 'UPD',
+    lessons: [
+      Lesson(
+        id: 'sql_alem_0',
+        title: 'Ler é seguro, escrever não',
+        description: 'A diferença que custa caro',
+        type: LessonType.explanation,
+        explanation:
+            'Um SELECT errado devolve a resposta errada. Um UPDATE errado muda o banco, e não existe desfazer.\n\nA disciplina é sempre a mesma: escreva a condição num SELECT primeiro, confira quantas linhas aparecem, e só então troque a palavra inicial pelo UPDATE ou DELETE.',
+        codeSnippet:
+            '-- 1. conferir\nSELECT * FROM usuarios WHERE id = 7;\n\n-- 2. só depois\nUPDATE usuarios SET coins = 200 WHERE id = 7;',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'sql_alem_1',
+        title: 'Inserindo uma linha',
+        description: 'Complete o comando',
+        type: LessonType.codeChallenge,
+        question: 'Cadastre um usuário chamado Ana.',
+        codeTemplate:
+            '{0} usuarios (nome, coins)\n{1} ("Ana", 0);',
+        availableTokens: ['INSERT INTO', 'ADD TO', 'VALUES', 'SET'],
+        correctTokens: ['INSERT INTO', 'VALUES'],
+        hint: 'Primeiro as colunas, depois os valores na mesma ordem.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'sql_alem_2',
+        title: 'O DELETE sem WHERE',
+        description: 'O erro mais caro do SQL',
+        type: LessonType.quiz,
+        question: 'O que `DELETE FROM usuarios;` faz?',
+        options: [
+          LessonOption(text: 'Apaga todas as linhas da tabela', isCorrect: true),
+          LessonOption(text: 'Não faz nada, falta o WHERE', isCorrect: false),
+          LessonOption(text: 'Apaga só a primeira linha', isCorrect: false),
+        ],
+        hint: 'Sem filtro, o comando vale para a tabela inteira.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'sql_alem_3',
+        title: 'Comparando com o vazio',
+        description: 'Complete a condição',
+        type: LessonType.codeChallenge,
+        question: 'Selecione os usuários que ainda não preencheram o e-mail.',
+        codeTemplate: 'SELECT nome\nFROM usuarios\nWHERE email {0};',
+        availableTokens: ['IS NULL', '= NULL', '== NULL', 'IS EMPTY'],
+        correctTokens: ['IS NULL'],
+        hint: 'NULL não é igual a nada, nem a ele mesmo. Por isso existe um operador só para ele.',
+        xpReward: 20,
+        coinReward: 10,
+      ),
+      Lesson(
+        id: 'sql_alem_4',
+        title: 'Os dez primeiros',
+        description: 'Ordenar e cortar',
+        type: LessonType.quiz,
+        question: 'Qual consulta traz os 10 usuários com mais moedas?',
+        options: [
+          LessonOption(
+              text: 'SELECT * FROM usuarios ORDER BY coins DESC LIMIT 10;',
+              isCorrect: true),
+          LessonOption(
+              text: 'SELECT TOP 10 * FROM usuarios ORDER BY coins;', isCorrect: false),
+          LessonOption(
+              text: 'SELECT * FROM usuarios LIMIT 10 ORDER BY coins DESC;',
+              isCorrect: false),
+        ],
+        hint: 'Ordena primeiro, corta depois. E DESC é do maior para o menor.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'sql_alem_5',
+        title: 'Tudo ou nada',
+        description: 'Para que serve uma transação',
+        type: LessonType.explanation,
+        explanation:
+            'Transferir moedas de uma conta para outra são dois comandos: tirar de um, somar no outro. Se o servidor cair no meio, o dinheiro some.\n\nA transação resolve: entre BEGIN e COMMIT, ou tudo acontece, ou nada acontece. Um ROLLBACK desfaz o que estava no meio.',
+        codeSnippet:
+            'BEGIN;\n\nUPDATE contas SET saldo = saldo - 100 WHERE id = 1;\nUPDATE contas SET saldo = saldo + 100 WHERE id = 2;\n\nCOMMIT;',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+    ],
+  ),
 ];

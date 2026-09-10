@@ -204,6 +204,98 @@ const List<CourseLevel> javaCurriculum = [
       ),
     ],
   ),
+  CourseLevel(
+    id: 2,
+    languageId: 'java',
+    title: 'Java: objetos de verdade',
+    description: 'Classes, encapsulamento e listas que crescem',
+    emoji: 'OO',
+    lessons: [
+      Lesson(
+        id: 'java_alem_0',
+        title: 'A classe é a forma, o objeto é a peça',
+        description: 'De onde vem tudo em Java',
+        type: LessonType.explanation,
+        explanation:
+            'Uma classe descreve o que algo tem e o que sabe fazer. Ela não é a coisa: é a forma de bolo. O objeto é o bolo, criado com `new`.\n\nDa mesma classe saem quantos objetos você quiser, cada um com os seus próprios valores.',
+        codeSnippet:
+            'class Aluno {\n  String nome;\n  int idade;\n}\n\nAluno ana = new Aluno();\nana.nome = "Ana";',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+      Lesson(
+        id: 'java_alem_1',
+        title: 'Criando o objeto',
+        description: 'Complete a linha que dá vida à classe',
+        type: LessonType.codeChallenge,
+        question: 'Crie um objeto `Livro` e guarde na variável `l`.',
+        codeTemplate: 'Livro l = {0} Livro();',
+        availableTokens: ['new', 'create', 'make', 'Livro'],
+        correctTokens: ['new'],
+        hint: 'Em Java, todo objeto nasce com uma palavra só.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'java_alem_2',
+        title: 'Guardando o campo por dentro',
+        description: 'Para que serve private',
+        type: LessonType.quiz,
+        question:
+            'Por que marcar o campo `saldo` como `private` dentro da classe Conta?',
+        options: [
+          LessonOption(
+              text: 'Só a própria classe pode mudar o valor, e ela pode conferir antes',
+              isCorrect: true),
+          LessonOption(text: 'O campo passa a ocupar menos memória', isCorrect: false),
+          LessonOption(text: 'O campo não pode mais mudar', isCorrect: false),
+        ],
+        hint: 'Pense em quem poderia zerar o saldo de fora sem avisar.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'java_alem_3',
+        title: 'Lista que cresce',
+        description: 'Monte a criação da ArrayList',
+        type: LessonType.codeChallenge,
+        question: 'Crie uma lista de textos vazia chamada `nomes`.',
+        codeTemplate:
+            'List<String> nomes = new {0}<>();\nnomes.{1}("Ana");',
+        availableTokens: ['ArrayList', 'String[]', 'add', 'push'],
+        correctTokens: ['ArrayList', 'add'],
+        hint: 'O array comum tem tamanho fixo; a outra cresce sozinha.',
+        xpReward: 20,
+        coinReward: 10,
+      ),
+      Lesson(
+        id: 'java_alem_4',
+        title: 'Uma classe que aproveita a outra',
+        description: 'A palavra da herança',
+        type: LessonType.quiz,
+        question:
+            'A classe `Gerente` deve ter tudo que `Funcionario` tem, e mais um pouco. O que escrever?',
+        options: [
+          LessonOption(text: 'class Gerente extends Funcionario', isCorrect: true),
+          LessonOption(text: 'class Gerente implements Funcionario', isCorrect: false),
+          LessonOption(text: 'class Gerente uses Funcionario', isCorrect: false),
+        ],
+        hint: '"Estende" o que já existe.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'java_alem_5',
+        title: 'Para onde ir agora',
+        description: 'O que praticar depois',
+        type: LessonType.explanation,
+        explanation:
+            'Com classes, listas e herança você já escreve um programa organizado em Java.\n\nO passo seguinte é a interface: um contrato que diz o que a classe precisa saber fazer, sem dizer como. É a base de quase todo framework Java, o Spring incluído.',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+    ],
+  ),
 ];
 
 const List<CourseLevel> csharpCurriculum = [
@@ -393,6 +485,97 @@ const List<CourseLevel> csharpCurriculum = [
         type: LessonType.explanation,
         explanation:
             'Com o básico no lugar, escolha o lado: ASP.NET Core para APIs e sites, ou Unity para jogos.\n\nEm qualquer um dos dois o próximo assunto é o mesmo: classes suas, com propriedades e métodos, e LINQ para filtrar listas em uma linha.',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+    ],
+  ),
+  CourseLevel(
+    id: 2,
+    languageId: 'csharp',
+    title: 'C#: classes e coleções',
+    description: 'Propriedades, listas e texto montado com elegância',
+    emoji: 'CL',
+    lessons: [
+      Lesson(
+        id: 'cs_alem_0',
+        title: 'Propriedade, não campo solto',
+        description: 'O jeito C# de expor um valor',
+        type: LessonType.explanation,
+        explanation:
+            'Em C# você raramente deixa um campo público. Usa uma propriedade: por fora parece um valor simples, por dentro é um par de métodos onde cabe uma validação depois, sem quebrar quem já usa.\n\nO `get; set;` gera esses dois métodos para você.',
+        codeSnippet:
+            'class Aluno\n{\n    public string Nome { get; set; }\n    public int Idade { get; set; }\n}',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+      Lesson(
+        id: 'cs_alem_1',
+        title: 'Lista de textos',
+        description: 'Monte a criação da lista',
+        type: LessonType.codeChallenge,
+        question: 'Crie uma lista de textos chamada `nomes` e coloque "Ana" nela.',
+        codeTemplate:
+            'var nomes = new {0}<string>();\nnomes.{1}("Ana");',
+        availableTokens: ['List', 'Array', 'Add', 'Push'],
+        correctTokens: ['List', 'Add'],
+        hint: 'Em C# os métodos começam com maiúscula.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'cs_alem_2',
+        title: 'Texto com valor no meio',
+        description: 'A interpolação de string',
+        type: LessonType.quiz,
+        question:
+            'Qual linha monta a frase juntando o nome guardado na variável?',
+        options: [
+          LessonOption(
+              text: 'Console.WriteLine(\$"Oi, {nome}");', isCorrect: true),
+          LessonOption(text: 'Console.WriteLine("Oi, {nome}");', isCorrect: false),
+          LessonOption(text: 'Console.WriteLine("Oi, " nome);', isCorrect: false),
+        ],
+        hint: 'Falta o sinal antes das aspas para ligar a interpolação.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'cs_alem_3',
+        title: 'Percorrendo a coleção',
+        description: 'Complete o laço',
+        type: LessonType.codeChallenge,
+        question: 'Mostre cada nome da lista, um por linha.',
+        codeTemplate:
+            '{0} (var nome {1} nomes)\n{\n    Console.WriteLine(nome);\n}',
+        availableTokens: ['foreach', 'for', 'in', 'of'],
+        correctTokens: ['foreach', 'in'],
+        hint: 'É o laço que não precisa de índice.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'cs_alem_4',
+        title: 'Quando o valor pode faltar',
+        description: 'O ponto de interrogação',
+        type: LessonType.quiz,
+        question: 'O que `aluno?.Nome` faz quando `aluno` está nulo?',
+        options: [
+          LessonOption(text: 'Devolve nulo, sem quebrar', isCorrect: true),
+          LessonOption(text: 'Lança uma exceção', isCorrect: false),
+          LessonOption(text: 'Devolve texto vazio', isCorrect: false),
+        ],
+        hint: 'O ponto de interrogação pergunta antes de seguir.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'cs_alem_5',
+        title: 'Para onde ir agora',
+        description: 'O que praticar depois',
+        type: LessonType.explanation,
+        explanation:
+            'Classes, listas e laços já sustentam um programa inteiro em C#.\n\nO passo seguinte é o LINQ: filtrar, ordenar e somar coleções em uma linha, com `Where`, `Select` e `OrderBy`. Depois dele é difícil voltar a escrever laço na mão para isso.',
         xpReward: 14,
         coinReward: 7,
       ),
@@ -589,6 +772,97 @@ const List<CourseLevel> goCurriculum = [
       ),
     ],
   ),
+  CourseLevel(
+    id: 2,
+    languageId: 'go',
+    title: 'Go: structs e mapas',
+    description: 'Dados agrupados, chaves e o erro como valor',
+    emoji: 'ST',
+    lessons: [
+      Lesson(
+        id: 'go_alem_0',
+        title: 'Agrupando campos numa struct',
+        description: 'O tipo que você mesmo cria',
+        type: LessonType.explanation,
+        explanation:
+            'Go não tem classes. Tem struct: um tipo com campos nomeados, e nada de herança.\n\nComportamento vem depois, em métodos ligados ao tipo. A separação entre dado e comportamento é proposital — é parte do que faz código Go ser fácil de ler.',
+        codeSnippet:
+            'type Aluno struct {\n    Nome  string\n    Idade int\n}\n\nana := Aluno{Nome: "Ana", Idade: 16}\nfmt.Println(ana.Nome)',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+      Lesson(
+        id: 'go_alem_1',
+        title: 'Um valor por chave',
+        description: 'Complete a criação do mapa',
+        type: LessonType.codeChallenge,
+        question: 'Crie um mapa de texto para inteiro chamado `idades`.',
+        codeTemplate:
+            'idades := {0}[string]int{}\nidades["Ana"] = 16',
+        availableTokens: ['map', 'dict', 'hash', 'array'],
+        correctTokens: ['map'],
+        hint: 'Em Go o nome da estrutura de chave e valor tem três letras.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'go_alem_2',
+        title: 'A chave existe mesmo?',
+        description: 'O segundo valor de retorno',
+        type: LessonType.quiz,
+        question:
+            'Em `valor, ok := idades["Bia"]`, o que o `ok` diz?',
+        options: [
+          LessonOption(text: 'Se a chave existia no mapa', isCorrect: true),
+          LessonOption(text: 'Se o mapa está vazio', isCorrect: false),
+          LessonOption(text: 'Se o valor é maior que zero', isCorrect: false),
+        ],
+        hint: 'Sem ele, você não distingue "não existe" de "existe e vale zero".',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'go_alem_3',
+        title: 'Erro é um valor comum',
+        description: 'Complete a checagem',
+        type: LessonType.codeChallenge,
+        question: 'Trate o erro devolvido pela função antes de seguir.',
+        codeTemplate:
+            'dados, err := ler("notas.txt")\nif err {0} nil {\n    return err\n}',
+        availableTokens: ['!=', '==', '>', '='],
+        correctTokens: ['!='],
+        hint: 'Sem erro, `err` vale nil. Você quer entrar quando ele NÃO for nil.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'go_alem_4',
+        title: 'Fechando o que foi aberto',
+        description: 'Para que serve defer',
+        type: LessonType.quiz,
+        question: 'Quando roda a linha marcada com `defer`?',
+        options: [
+          LessonOption(
+              text: 'No fim da função, aconteça o que acontecer', isCorrect: true),
+          LessonOption(text: 'Imediatamente, como qualquer linha', isCorrect: false),
+          LessonOption(text: 'Só se a função der erro', isCorrect: false),
+        ],
+        hint: 'É por isso que `defer arquivo.Close()` fica logo depois do open.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'go_alem_5',
+        title: 'Para onde ir agora',
+        description: 'O que praticar depois',
+        type: LessonType.explanation,
+        explanation:
+            'Struct, mapa e tratamento de erro são o dia a dia de qualquer programa Go.\n\nO passo seguinte é o pacote `net/http` da biblioteca padrão: dá para servir uma API inteira sem instalar nada. É por isso que tanta gente escolhe Go para servidor.',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+    ],
+  ),
 ];
 
 const List<CourseLevel> phpCurriculum = [
@@ -780,6 +1054,101 @@ const List<CourseLevel> phpCurriculum = [
       ),
     ],
   ),
+  CourseLevel(
+    id: 2,
+    languageId: 'php',
+    title: 'PHP: arrays e formulários',
+    description: 'Chaves, laços sobre dados e o que chega do navegador',
+    emoji: 'AR',
+    lessons: [
+      Lesson(
+        id: 'php_alem_0',
+        title: 'Array com chave, não só posição',
+        description: 'O array associativo',
+        type: LessonType.explanation,
+        explanation:
+            'Em PHP, o array serve para as duas coisas: lista numerada e dicionário de chave e valor. É a estrutura mais usada da linguagem.\n\nCom chave nomeada o código se explica sozinho: `\$aluno["nome"]` diz o que é; `\$aluno[0]` obriga você a lembrar.',
+        codeSnippet:
+            '<?php\n\$aluno = [\n    "nome" => "Ana",\n    "idade" => 16,\n];\n\necho \$aluno["nome"];',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+      Lesson(
+        id: 'php_alem_1',
+        title: 'Percorrendo chave e valor',
+        description: 'Complete o laço',
+        type: LessonType.codeChallenge,
+        question: 'Mostre cada chave e cada valor do array `\$aluno`.',
+        codeTemplate:
+            '{0} (\$aluno {1} \$chave => \$valor) {\n    echo "\$chave: \$valor";\n}',
+        availableTokens: ['foreach', 'for', 'as', 'in'],
+        correctTokens: ['foreach', 'as'],
+        hint: 'Em PHP o laço sobre array lê-se "para cada array como chave e valor".',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'php_alem_2',
+        title: 'O campo veio mesmo?',
+        description: 'Conferindo antes de usar',
+        type: LessonType.quiz,
+        question:
+            'O formulário pode não ter enviado o campo. O que confere se ele existe?',
+        options: [
+          LessonOption(text: 'isset(\$_POST["email"])', isCorrect: true),
+          LessonOption(text: 'exists(\$_POST["email"])', isCorrect: false),
+          LessonOption(text: 'defined(\$_POST["email"])', isCorrect: false),
+        ],
+        hint: 'Literalmente: "está setado".',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'php_alem_3',
+        title: 'Valor padrão no parâmetro',
+        description: 'Complete a função',
+        type: LessonType.codeChallenge,
+        question:
+            'A função saúda alguém, e usa "visitante" quando não recebe nome.',
+        codeTemplate:
+            'function saudar(\$nome {0} "visitante") {\n    echo "Oi, \$nome";\n}\nsaudar();',
+        availableTokens: ['=', '=>', ':', '??'],
+        correctTokens: ['='],
+        hint: 'O padrão é atribuído ali mesmo, na assinatura.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'php_alem_4',
+        title: 'Nunca confie no que chega',
+        description: 'A regra que evita a maior parte dos problemas',
+        type: LessonType.quiz,
+        question:
+            'O que fazer com o texto digitado pelo usuário antes de mostrar na página?',
+        options: [
+          LessonOption(
+              text: 'Escapar com htmlspecialchars antes de imprimir',
+              isCorrect: true),
+          LessonOption(text: 'Imprimir direto, o navegador resolve', isCorrect: false),
+          LessonOption(text: 'Converter para maiúsculas', isCorrect: false),
+        ],
+        hint:
+            'Sem isso, alguém digita uma tag de script no campo e ela roda na página de todo mundo.',
+        xpReward: 20,
+        coinReward: 10,
+      ),
+      Lesson(
+        id: 'php_alem_5',
+        title: 'Para onde ir agora',
+        description: 'O que praticar depois',
+        type: LessonType.explanation,
+        explanation:
+            'Arrays, laços e dados de formulário já sustentam uma página dinâmica inteira.\n\nO passo seguinte é o PDO, para falar com o banco de dados usando consultas preparadas — o jeito que não deixa ninguém injetar SQL pelo campo de busca.',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+    ],
+  ),
 ];
 
 const List<CourseLevel> rubyCurriculum = [
@@ -962,6 +1331,95 @@ const List<CourseLevel> rubyCurriculum = [
         type: LessonType.explanation,
         explanation:
             'Com blocos e coleções na mão, o próximo passo é criar suas classes e ver como Ruby trata tudo como objeto.\n\nDepois vem o Rails, que monta um sistema web inteiro em cima do que você já aprendeu aqui.',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+    ],
+  ),
+  CourseLevel(
+    id: 2,
+    languageId: 'ruby',
+    title: 'Ruby: blocos e objetos',
+    description: 'each, hash e classes com pouca cerimônia',
+    emoji: 'BL',
+    lessons: [
+      Lesson(
+        id: 'rb_alem_0',
+        title: 'O bloco é o coração do Ruby',
+        description: 'Um pedaço de código passado como argumento',
+        type: LessonType.explanation,
+        explanation:
+            'Em Ruby você quase não escreve laço na mão. Passa um bloco para o próprio objeto percorrer: `each` para visitar, `map` para transformar, `select` para escolher.\n\nO bloco vai entre `do` e `end`, ou entre chaves quando cabe numa linha.',
+        codeSnippet:
+            'notas = [5, 7, 9]\n\nnotas.each do |n|\n  puts n\nend\n\ndobradas = notas.map { |n| n * 2 }',
+        xpReward: 14,
+        coinReward: 7,
+      ),
+      Lesson(
+        id: 'rb_alem_1',
+        title: 'Escolhendo alguns',
+        description: 'Monte a linha que filtra',
+        type: LessonType.codeChallenge,
+        question: 'Guarde em `boas` só as notas maiores que 7.',
+        codeTemplate: 'boas = notas.{0} { |n| n {1} 7 }',
+        availableTokens: ['select', 'map', '>', '>='],
+        correctTokens: ['select', '>'],
+        hint: '"Maiores que 7" não inclui o próprio 7.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'rb_alem_2',
+        title: 'Chave e valor',
+        description: 'O hash do Ruby',
+        type: LessonType.quiz,
+        question: 'Como ler o nome no hash `aluno = { nome: "Ana" }`?',
+        options: [
+          LessonOption(text: 'aluno[:nome]', isCorrect: true),
+          LessonOption(text: 'aluno.nome', isCorrect: false),
+          LessonOption(text: 'aluno->nome', isCorrect: false),
+        ],
+        hint: 'A chave ali é um símbolo, e símbolo começa com dois pontos.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'rb_alem_3',
+        title: 'Uma classe enxuta',
+        description: 'Complete o atributo',
+        type: LessonType.codeChallenge,
+        question:
+            'A classe expõe `nome` para leitura e escrita, sem escrever métodos na mão.',
+        codeTemplate: 'class Aluno\n  {0} :nome\nend',
+        availableTokens: ['attr_accessor', 'attr_reader', 'property', 'public'],
+        correctTokens: ['attr_accessor'],
+        hint: 'Só leitura seria `attr_reader`. Aqui você quer os dois.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'rb_alem_4',
+        title: 'O ponto de interrogação no nome',
+        description: 'Uma convenção que vale ouro',
+        type: LessonType.quiz,
+        question: 'O que a convenção `vazio?` sinaliza sobre o método?',
+        options: [
+          LessonOption(text: 'Que ele devolve verdadeiro ou falso', isCorrect: true),
+          LessonOption(text: 'Que ele pode dar erro', isCorrect: false),
+          LessonOption(text: 'Que ele muda o objeto', isCorrect: false),
+        ],
+        hint:
+            'O irmão dele é o nome terminado em exclamação, que avisa que o objeto vai mudar.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'rb_alem_5',
+        title: 'Para onde ir agora',
+        description: 'O que praticar depois',
+        type: LessonType.explanation,
+        explanation:
+            'Blocos, hashes e classes cobrem quase tudo que se escreve em Ruby no dia a dia.\n\nO passo seguinte quase sempre é o Rails: ele leva essas mesmas ideias para o site inteiro — model, rota e view — e é onde a linguagem mais aparece no mercado.',
         xpReward: 14,
         coinReward: 7,
       ),

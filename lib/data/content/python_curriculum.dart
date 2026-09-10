@@ -724,6 +724,198 @@ const List<CourseLevel> pythonCurriculum = [
       ),
     ],
   ),
+  CourseLevel(
+    id: 6,
+    languageId: 'logic',
+    title: 'Fundamentos: padrões e decisões',
+    description: 'Enxergar a regra por trás dos dados antes de escrever código',
+    emoji: 'PD',
+    lessons: [
+      Lesson(
+        id: 'logic_alem_0',
+        title: 'Achar a regra',
+        description: 'Programar é descrever um padrão',
+        type: LessonType.explanation,
+        explanation:
+            'Antes de qualquer linha de código vem uma pergunta: qual é a regra que liga a entrada à saída?\n\nQuem enxerga a regra escreve o programa em minutos. Quem começa a digitar sem enxergar passa horas ajustando um código que nunca fecha.',
+        xpReward: 12,
+        coinReward: 6,
+      ),
+      Lesson(
+        id: 'logic_alem_1',
+        title: 'A sequência continua',
+        description: 'Descubra o próximo',
+        type: LessonType.quiz,
+        question: 'Qual número vem depois: 2, 6, 12, 20, 30, ...?',
+        options: [
+          LessonOption(text: '42', isCorrect: true),
+          LessonOption(text: '40', isCorrect: false),
+          LessonOption(text: '36', isCorrect: false),
+        ],
+        hint: 'Olhe a diferença entre um número e o próximo: 4, 6, 8, 10...',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'logic_alem_2',
+        title: 'O contrário da condição',
+        description: 'Negar direito',
+        type: LessonType.quiz,
+        question:
+            'A regra é "entra quem tem 18 anos ou mais E tem convite". Quem NÃO entra?',
+        options: [
+          LessonOption(
+              text: 'Quem tem menos de 18 OU não tem convite', isCorrect: true),
+          LessonOption(
+              text: 'Quem tem menos de 18 E não tem convite', isCorrect: false),
+          LessonOption(text: 'Só quem tem menos de 18', isCorrect: false),
+        ],
+        hint:
+            'Ao negar, o "e" vira "ou". Basta uma das duas exigências falhar para ficar de fora.',
+        xpReward: 20,
+        coinReward: 10,
+      ),
+      Lesson(
+        id: 'logic_alem_3',
+        title: 'Contando com cuidado',
+        description: 'O erro de um a mais',
+        type: LessonType.quiz,
+        question: 'Quantos números inteiros existem de 3 até 9, incluindo os dois?',
+        options: [
+          LessonOption(text: '7', isCorrect: true),
+          LessonOption(text: '6', isCorrect: false),
+          LessonOption(text: '8', isCorrect: false),
+        ],
+        hint:
+            'Subtrair não basta: 9 menos 3 dá 6, e ainda falta contar um dos extremos.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'logic_alem_4',
+        title: 'A ordem importa',
+        description: 'Trocando dois valores',
+        type: LessonType.quiz,
+        question:
+            'Você quer trocar os valores de A e B. Por que `A = B` seguido de `B = A` não funciona?',
+        options: [
+          LessonOption(
+              text: 'A primeira linha apaga o valor antigo de A, e a segunda copia o de B de volta',
+              isCorrect: true),
+          LessonOption(text: 'Porque as linhas rodam ao mesmo tempo', isCorrect: false),
+          LessonOption(text: 'Porque falta comparar os dois antes', isCorrect: false),
+        ],
+        hint: 'É por isso que se guarda um dos dois numa terceira variável antes.',
+        xpReward: 20,
+        coinReward: 10,
+      ),
+      Lesson(
+        id: 'logic_alem_5',
+        title: 'Dividir para resolver',
+        description: 'O método que serve para tudo',
+        type: LessonType.explanation,
+        explanation:
+            'Problema grande não se resolve de uma vez. Se divide.\n\nPara procurar um nome numa lista ordenada de mil, você não olha os mil: olha o do meio e descarta metade. Dez passos resolvem. É a mesma ideia por trás de quase todo algoritmo rápido que existe — e a mesma que serve para escrever um programa: uma parte de cada vez.',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+    ],
+  ),
+  CourseLevel(
+    id: 7,
+    languageId: 'python',
+    title: 'Python: guardando e organizando',
+    description: 'Dicionários, erros tratados e código em pedaços',
+    emoji: 'DIC',
+    lessons: [
+      Lesson(
+        id: 'py_alem_0',
+        title: 'Dicionário guarda por nome',
+        description: 'Quando a posição não basta',
+        type: LessonType.explanation,
+        explanation:
+            'Lista guarda por posição: `notas[0]`. Dicionário guarda por nome: `aluno["nome"]`.\n\nQuando os dados descrevem uma coisa só, com campos diferentes, o dicionário é a escolha certa — o código passa a dizer o que está lendo.',
+        codeSnippet:
+            'aluno = {\n    "nome": "Ana",\n    "idade": 16,\n}\n\nprint(aluno["nome"])',
+        xpReward: 16,
+        coinReward: 8,
+      ),
+      Lesson(
+        id: 'py_alem_1',
+        title: 'A chave pode não existir',
+        description: 'Ler sem quebrar',
+        type: LessonType.quiz,
+        question:
+            'O dicionário `aluno` pode não ter a chave "apelido". Qual linha devolve "sem apelido" nesse caso, em vez de dar erro?',
+        options: [
+          LessonOption(text: 'aluno.get("apelido", "sem apelido")', isCorrect: true),
+          LessonOption(text: 'aluno["apelido"]', isCorrect: false),
+          LessonOption(text: 'aluno.find("apelido")', isCorrect: false),
+        ],
+        hint: 'Os colchetes dão KeyError. O método aceita um valor padrão.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'py_alem_2',
+        title: 'Função que saúda',
+        description: 'Complete a chamada',
+        type: LessonType.codeChallenge,
+        question: 'Complete para mostrar "Oi, Ana":',
+        codeTemplate: 'def saudar(nome):\n    print("Oi, " + nome)\n\n{0}("Ana")',
+        availableTokens: ['saudar', 'print', 'nome', 'def'],
+        correctTokens: ['saudar'],
+        expectedOutput: 'Oi, Ana',
+        hint: 'Chame a função pelo nome que você deu a ela no `def`.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'py_alem_3',
+        title: 'Somando de 1 a 3',
+        description: 'Complete o acumulador',
+        type: LessonType.codeChallenge,
+        question: 'Complete para mostrar 6:',
+        codeTemplate:
+            'total = 0\nfor i in range(1, {0}):\n    total = total + i\nprint(total)',
+        availableTokens: ['4', '3', '5', '2'],
+        correctTokens: ['4'],
+        expectedOutput: '6',
+        hint: 'O `range` para antes do último número. Para chegar ao 3, peça 4.',
+        xpReward: 20,
+        coinReward: 10,
+      ),
+      Lesson(
+        id: 'py_alem_4',
+        title: 'Quando algo dá errado',
+        description: 'try e except',
+        type: LessonType.quiz,
+        question:
+            'O usuário digitou "abc" onde você esperava um número. O que evita o programa quebrar?',
+        options: [
+          LessonOption(
+              text: 'Envolver a conversão em try / except ValueError', isCorrect: true),
+          LessonOption(text: 'Converter duas vezes', isCorrect: false),
+          LessonOption(text: 'Usar print antes de converter', isCorrect: false),
+        ],
+        hint: 'Tratar o erro é dizer o que fazer quando ele acontecer.',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+      Lesson(
+        id: 'py_alem_5',
+        title: 'Código em pedaços',
+        description: 'Para onde ir agora',
+        type: LessonType.explanation,
+        explanation:
+            'Quando o arquivo passa de umas duzentas linhas, ele vira dois. Cada arquivo .py é um módulo, e `import` traz o que está no outro.\n\nO passo seguinte é ler e escrever arquivos com `open`, e usar a biblioteca padrão: `json` para dados, `datetime` para datas, `random` para sorteio. Quase tudo que você precisa já vem instalado.',
+        codeSnippet:
+            '# arquivo: calculos.py\ndef dobro(n):\n    return n * 2\n\n# arquivo: main.py\nfrom calculos import dobro\n\nprint(dobro(5))',
+        xpReward: 18,
+        coinReward: 9,
+      ),
+    ],
+  ),
 ];
 
 bool hasCompletedLogicFoundations(Iterable<String> completedLessons) {

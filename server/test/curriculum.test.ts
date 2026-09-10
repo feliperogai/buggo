@@ -9,13 +9,17 @@ import {
   positionFor,
 } from '../lib/curriculum';
 
+// Os números são exatos de propósito: é o que faz este teste falhar quando
+// alguém mexe nas trilhas em Dart e esquece de rodar
+// `tool/build_curriculum_outline.py`. Ao adicionar conteúdo, rode o script e
+// atualize os dois valores aqui.
 test('o esqueleto cobre todas as linguagens do app', () => {
   const languages = knownLanguageIds();
   assert.equal(languages.length, 16);
-  assert.equal(CURRICULUM_OUTLINE.length, 34);
+  assert.equal(CURRICULUM_OUTLINE.length, 50);
 
   const lessons = CURRICULUM_OUTLINE.flatMap((level) => level.lessons);
-  assert.equal(lessons.length, 214);
+  assert.equal(lessons.length, 310);
   assert.equal(new Set(lessons.map((l) => l.id)).size, lessons.length);
 });
 
