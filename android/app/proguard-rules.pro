@@ -28,3 +28,22 @@
 -keep class com.google.android.gms.identitycredentials.** { *; }
 -dontwarn androidx.credentials.**
 -dontwarn com.google.android.libraries.identity.googleid.**
+
+# flutter_local_notifications guarda os agendamentos serializados com GSON.
+# Sem estas regras o R8 renomeia os campos das classes do plugin e o release
+# perde todo lembrete agendado ao reiniciar o aparelho — em debug funciona,
+# porque o R8 não roda.
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
+-dontwarn sun.misc.**
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+-keep public class * implements java.lang.reflect.Type
+-keep class com.dexterous.** { *; }
+-keep class com.dexterous.flutterlocalnotifications.models.** { *; }
+
+# As classes de data do Java 8 chegam pelo desugaring; sem isto o R8 avisa
+# sobre referências que ele não encontra no bootclasspath antigo.
+-dontwarn java.time.**

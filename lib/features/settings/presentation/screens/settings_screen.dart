@@ -124,6 +124,23 @@ class SettingsScreen extends ConsumerWidget {
                       ref.read(settingsProvider.notifier).setHapticsEnabled(v),
                 ),
                 const SizedBox(height: 24),
+                _SectionLabel('Lembretes'),
+                _SwitchTile(
+                  icon: Icons.notifications_active_rounded,
+                  label: 'Lembrete de estudo',
+                  description: 'Um empurrãozinho por dia para não perder a '
+                      'sequência',
+                  color: AppColors.primary,
+                  value: settings.remindersEnabled,
+                  onChanged: (v) => _toggleReminders(context, ref, v),
+                ),
+                if (settings.remindersEnabled)
+                  _ReminderHourPicker(
+                    selected: settings.reminderHour,
+                    onSelected: (h) =>
+                        ref.read(settingsProvider.notifier).setReminderHour(h),
+                  ),
+                const SizedBox(height: 24),
                 _SectionLabel('Sobre'),
                 _SettingsTile(
                   icon: Icons.info_rounded,
@@ -140,6 +157,91 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 32),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Liga os lembretes, pedindo a permissão do sistema antes.
+///
+/// Recusar a permissão deixa o interruptor apagado de propósito: um botão
+/// aceso que não notifica nada é pior do que um apagado.
+Future<void> _toggleReminders(
+  BuildContext context, WidgetRef ref, bool value) async {
+  final ok = await ref.read(settingsProvider.notifier)
+      .setRemindersEnabled(value);
+  if (ok || !value || !context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      behavior: SnackBarBehavior.floating,
+      content: Text(
+        'O Android bloqueou as notificações do Buggo. Libere em Ajustes > '
+        'Apps > Buggo > Notificações.',
+      ),
+    ),
+  );
+}
+
+/// Escolha da hora do lembrete diário. Poucas opções de propósito: um seletor
+/// de relógio completo pediria mais atenção do que a decisão merece.
+class _ReminderHourPicker extends StatelessWidget {
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  const _ReminderHourPicker({
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cardBorder, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Horário', style: AppTextStyles.bodyLarge),
+          const SizedBox(height: 2),
+          Text(
+            'O aviso de sequência em risco chega às 21h, se faltar estudar.',
+            style: AppTextStyles.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final hour in AppSettings.reminderHourOptions)
+                GestureDetector(
+                  onTap: () => onSelected(hour),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: hour == selected
+                          ? AppColors.primary
+                          : AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${hour.toString().padLeft(2, '0')}:00',
+                      style: AppTextStyles.labelLarge.copyWith(
+                        color: hour == selected
+                            ? Colors.white
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

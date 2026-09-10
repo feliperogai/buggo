@@ -1,0 +1,17 @@
+<!-- Ícone da barra de notificação.
+
+     O Android desenha esse ícone como silhueta: tudo que não é transparente
+     vira branco. Por isso ele é um vetor monocromático em vez do ícone
+     colorido do app, que viraria um quadrado branco sem forma nenhuma.
+
+     O desenho é o mesmo símbolo do ícone do Buggo: </>. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M9.4,16.6 L4.8,12 L9.4,7.4 L8,6 l-6,6 6,6 z M14.6,16.6 L19.2,12 L14.6,7.4 L16,6 l6,6 -6,6 z"/>
+</vector>

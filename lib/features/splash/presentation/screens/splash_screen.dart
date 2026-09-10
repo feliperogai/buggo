@@ -62,6 +62,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       // de som/vibração salvas, antes de qualquer tela poder tocar algo.
       ref.read(settingsProvider);
       user = ref.read(userProvider);
+      // Refaz o plano de lembretes com o estado de hoje: quem já estudou não
+      // recebe cobrança, e quem sumiu por dias passa a receber o texto de
+      // volta em vez do de rotina. Não é esperado — a splash não pode ficar
+      // presa num agendamento lento.
+      unawaited(ref.read(settingsProvider.notifier).syncReminders());
     } catch (e) {
       debugPrint('splash: não foi possível ler o perfil salvo: $e');
     }

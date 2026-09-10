@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import 'audio/sound_service.dart';
 import 'config/env_config.dart';
+import 'notifications/notification_service.dart';
 import 'storage/hive_storage.dart';
 
 /// Local/network setup (Hive, .env, áudio). Runs after the first frame so
@@ -16,6 +17,9 @@ Future<void> bootstrapApp() async {
   await _step('Hive', HiveStorage.init);
   await _step('.env', EnvConfig.load);
   await _step('áudio', SoundService.instance.init);
+  // Só cria o canal e liga o plugin. Nada é agendado aqui: o agendamento
+  // depende do perfil, e quem faz isso é a splash depois de carregá-lo.
+  await _step('notificações', NotificationService.instance.init);
 
   debugPrint('bootstrap: API em ${EnvConfig.apiBaseUrl} '
       '(origem: ${EnvConfig.apiBaseUrlSource.label})');

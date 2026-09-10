@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- O ícone da notificação é referenciado por nome, em tempo de execução
+     ("@drawable/ic_notification" em NotificationService). O encolhedor de
+     recursos não enxerga essa referência e apagaria o arquivo do release —
+     e aí a notificação simplesmente não aparece, sem erro nenhum.
+
+     Manter todos os drawables é o que a documentação do plugin recomenda. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/*" />

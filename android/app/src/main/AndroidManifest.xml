@@ -12,6 +12,20 @@
     <!-- Google Play Billing: exigida pela biblioteca de faturamento
          para abrir a folha de pagamento do Google. -->
     <uses-permission android:name="com.android.vending.BILLING"/>
+    <!-- Lembretes de estudo. São notificações locais, agendadas no próprio
+         aparelho: não há servidor de push nem Firebase envolvidos.
+
+         POST_NOTIFICATIONS é pedida em tempo de execução no Android 13+.
+         RECEIVE_BOOT_COMPLETED existe para o plugin reagendar o que estava
+         marcado depois que o aparelho reinicia — sem ela, quem reinicia o
+         celular à noite perde os lembretes.
+
+         SCHEDULE_EXACT_ALARM não é declarada de propósito: o lembrete usa
+         alarme inexato, que o sistema entrega dentro de uma janela. Um
+         lembrete de estudo não precisa de precisão de segundo, e o alarme
+         exato exige justificativa na revisão do Google Play. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
         android:label="Buggo"
         android:name="${applicationName}"
@@ -49,6 +63,22 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Receivers do flutter_local_notifications. O primeiro entrega a
+             notificação na hora marcada; o segundo reagenda tudo depois de
+             um reinício ou de uma atualização do app. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

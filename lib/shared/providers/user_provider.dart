@@ -4,6 +4,7 @@ import '../models/user_profile.dart';
 import '../../core/storage/hive_storage.dart';
 import '../../features/auth/data/auth_repository.dart';
 import '../../features/auth/data/google_sign_in_service.dart';
+import 'settings_provider.dart';
 
 class UserNotifier extends Notifier<UserProfile?> {
   static const int lifeCoinCost = 50;
@@ -281,6 +282,9 @@ class UserNotifier extends Notifier<UserProfile?> {
       completedLessons: [...state!.completedLessons, lessonId],
     );
     saveProfile(updated);
+    // Estudou hoje: o lembrete de hoje perde o sentido e o de sequência em
+    // risco viraria mentira. O plano é refeito com a sequência nova.
+    unawaited(ref.read(settingsProvider.notifier).syncReminders());
   }
 
   /// Computes the new streak and how many Streak Freezes get consumed to
