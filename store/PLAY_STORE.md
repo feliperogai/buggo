@@ -103,7 +103,9 @@ simplesmente não é destacado na aba de tablets.
 ## 4. Segurança de Dados (formulário)
 
 Respostas conferidas contra o código (`server/schema.sql`, `server/api/`,
-`lib/features/profile/`).
+`server/lib/ai/`, `lib/features/`). Revisadas em 09/09/2026, depois da entrada
+do login com Google, das compras no Play, do desafio do dia por IA e dos
+anúncios do AdMob — a versão anterior era de 11/08 e ficou incorreta.
 
 **O app coleta ou compartilha dados do usuário?** → **Sim**
 **Os dados são criptografados em trânsito?** → **Sim** (HTTPS)
@@ -115,6 +117,28 @@ Respostas conferidas contra o código (`server/schema.sql`, `server/api/`,
 | Nome | Sim | Não | Não | Gerenciamento da conta, funcionalidade do app |
 | Senha | Sim | Não | Não | Gerenciamento da conta |
 | Ações no app (progresso, XP, lições) | Sim | Não | Não | Funcionalidade do app |
+| **ID de publicidade** | **Sim** | **Sim** | Não | **Publicidade ou marketing** |
+| **Histórico de compras** | **Sim** | Não | Não | Funcionalidade do app |
+| **Outro conteúdo gerado pelo usuário** | **Sim** | **Sim** | Não | Funcionalidade do app |
+
+Sobre as três linhas novas:
+
+- **ID de publicidade.** O `google_mobile_ads` declara
+  `com.google.android.gms.permission.AD_ID` no manifesto de release — conferido
+  no manifesto mesclado. Como o AdMob usa esse identificador para exibir e medir
+  anúncios, ele conta como coletado **e** compartilhado, com finalidade de
+  publicidade. Declarar isso é obrigatório desde que a permissão existe no app.
+- **Histórico de compras.** A tabela `purchases` guarda produto, data e token de
+  cada compra confirmada, para creditar o item e impedir que o mesmo token
+  credite duas vezes. Fica só no nosso servidor.
+- **Outro conteúdo gerado pelo usuário.** O código que a pessoa escreve no
+  desafio do dia é enviado para a **OpenAI** na correção, e o progresso (nível e
+  títulos das lições concluídas) vai para a **DeepSeek** na geração. Nenhum dado
+  identificador acompanha esses envios — nem nome, nem e-mail, nem id da conta —
+  mas o conteúdo sai para terceiros, então é compartilhamento.
+
+**Vidas, moedas e sequência** entram em "Ações no app", junto com o progresso;
+não são um tipo separado no formulário.
 
 **Fotos → NÃO declare como coletadas.** O app usa a foto só para o avatar, e
 a imagem **nunca sai do aparelho** —
@@ -123,7 +147,10 @@ servidor guarda apenas o caminho, não a imagem. Pela definição do Google,
 "coleta" é transmissão para fora do dispositivo; então a resposta correta é
 não declarar.
 
-Nenhum dado é compartilhado com terceiros, e nada é usado para publicidade.
+A política de privacidade em `server/public/privacy.html` tem que descrever
+exatamente estes mesmos itens. O Google reprova quando o formulário e a política
+se contradizem — foi por isso que a frase "não usamos os seus dados para
+publicidade" saiu de lá.
 
 ---
 
