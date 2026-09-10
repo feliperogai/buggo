@@ -78,8 +78,9 @@ class UserNotifier extends Notifier<UserProfile?> {
   }
 
   /// Clears the local profile and server session (if any), leaving the app
-  /// ready to show onboarding again. Does not touch the progress box — see
-  /// the distinct "Resetar progresso" action for a full local wipe.
+  /// ready to show onboarding again. Does not touch the progress box: sair da
+  /// conta não apaga o que a pessoa já estudou, e não existe mais nenhuma
+  /// ação no app que apague.
   Future<void> logout() async {
     await _authRepository.logout();
     // Sem isto o Google reentra sozinho na mesma conta no próximo login, sem
