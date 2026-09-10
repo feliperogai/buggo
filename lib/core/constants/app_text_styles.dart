@@ -72,16 +72,32 @@ class AppTextStyles {
       );
 
   // Code (Fira Code)
+  //
+  // As ligaduras da Fira Code são desligadas de propósito. Com elas, `<<`,
+  // `->`, `=>`, `!=`, `>=` e `::` viram um glifo colado só — bonito para quem
+  // já programa, símbolo estranho para quem está aprendendo e ainda vai
+  // digitar aqueles dois caracteres. Some justamente nas linguagens que mais
+  // usam esses operadores: C++, Rust, Go, PHP, JavaScript, Kotlin, Swift.
+  //
+  // `liga` são as ligaduras padrão e `calt` as contextuais, que é onde a Fira
+  // Code coloca os operadores. Precisa desligar as duas.
+  static const _noLigatures = <FontFeature>[
+    FontFeature.disable('liga'),
+    FontFeature.disable('calt'),
+  ];
+
   static TextStyle get code => GoogleFonts.firaCode(
         fontSize: 13,
         fontWeight: FontWeight.w500,
         color: AppColors.primary,
+        fontFeatures: _noLigatures,
       );
 
   static TextStyle get codeLarge => GoogleFonts.firaCode(
         fontSize: 15,
         fontWeight: FontWeight.w500,
         color: AppColors.primary,
+        fontFeatures: _noLigatures,
       );
 
   // Backward compat aliases for pixel styles that are still referenced
