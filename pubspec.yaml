@@ -28,6 +28,10 @@ dependencies:
   audioplayers: ^6.1.0
   google_sign_in: ^7.2.0
   in_app_purchase: ^3.3.0
+  # Direto no pubspec porque o app chama `consumePurchase` do addition do
+  # Android: o pacote de moedas só pode ser consumido depois que o servidor
+  # creditar, e a API genérica não expõe consumo.
+  in_app_purchase_android: ^0.5.0
   google_mobile_ads: ^9.1.0
 
 dev_dependencies:
