@@ -58,11 +58,99 @@ class _AvatarPickerSheet extends ConsumerWidget {
     }
   }
 
+  /// Confirma antes de cobrar.
+  ///
+  /// Avatar caro sem confirmação vira toque acidental e pedido de reembolso —
+  /// e moeda comprada com dinheiro real não tem como devolver daqui.
+  Future<void> _confirmPurchase(
+    BuildContext ctx,
+    WidgetRef ref,
+    int index,
+    PixelAvatarData avatar,
+    int coins,
+  ) async {
+    if (coins < avatar.price) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.error,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14)),
+          content: Text(
+            'Faltam ${avatar.price - coins} moedas para desbloquear '
+            '${avatar.name}.',
+            style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final ok = await showDialog<bool>(
+      context: ctx,
+      builder: (dctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Comprar ${avatar.name}?',
+            style: AppTextStyles.headlineSmall),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: PixelAvatar(
+                  avatarIndex: index, size: 96, circular: false),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Custa ${avatar.price} moedas e fica seu para sempre.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dctx, false),
+            child: Text('Agora não', style: AppTextStyles.bodyMedium),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dctx, true),
+            child: Text('Comprar',
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true || !ctx.mounted) return;
+
+    final bought = ref.read(userProvider.notifier).buyAvatar(index);
+    if (!ctx.mounted) return;
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: bought ? AppColors.success : AppColors.error,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        content: Text(
+          bought
+              ? 'Avatar desbloqueado: ${avatar.name}!'
+              : 'Não foi possível comprar agora.',
+          style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+        ),
+      ),
+    );
+    if (bought) Navigator.of(ctx).pop();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProvider);
     final currentIdx = user?.avatarIndex ?? 0;
     final hasPhoto = user?.customPhotoPath?.isNotEmpty ?? false;
+    final notifier = ref.read(userProvider.notifier);
 
     return Container(
       decoration: BoxDecoration(
@@ -94,90 +182,183 @@ class _AvatarPickerSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 18),
 
-          Text('Escolher avatar', style: AppTextStyles.headlineSmall),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Escolher avatar',
+                    style: AppTextStyles.headlineSmall),
+              ),
+              // O saldo fica à vista: sem ele, o preço no avatar bloqueado não
+              // diz nada.
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.coinColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.monetization_on_rounded,
+                        color: AppColors.coinColor, size: 15),
+                    const SizedBox(width: 4),
+                    Text('${user?.coins ?? 0}',
+                        style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.coinColor,
+                            fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
-          Text('Toque para selecionar um personagem',
+          Text('Toque para selecionar. Os dourados custam moedas.',
               style: AppTextStyles.bodySmall),
 
           const SizedBox(height: 20),
 
-          // 3×2 avatar grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.85,
+          // Grade de avatares. Com 14 itens ela não cabe mais na tela, então
+          // a folha rola em vez de estourar.
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.46,
             ),
-            itemCount: kPixelAvatars.length,
-            itemBuilder: (ctx, i) {
-              final av = kPixelAvatars[i];
-              final isSelected = !hasPhoto && currentIdx == i;
-              return GestureDetector(
-                onTap: () {
-                  ref.read(userProvider.notifier).updateAvatar(
-                        i,
-                        clearPhoto: true,
-                      );
-                  Navigator.of(ctx).pop();
-                },
-                child: Column(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
+            child: GridView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.70,
+              ),
+              itemCount: kPixelAvatars.length,
+              itemBuilder: (ctx, i) {
+                final av = kPixelAvatars[i];
+                final owned = notifier.ownsAvatar(i);
+                final isSelected = !hasPhoto && currentIdx == i;
+                final canAfford = (user?.coins ?? 0) >= av.price;
+
+                return GestureDetector(
+                  onTap: () {
+                    if (owned) {
+                      ref
+                          .read(userProvider.notifier)
+                          .updateAvatar(i, clearPhoto: true);
+                      Navigator.of(ctx).pop();
+                      return;
+                    }
+                    _confirmPurchase(ctx, ref, i, av, user?.coins ?? 0);
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : owned
+                                    ? AppColors.cardBorder
+                                    : AppColors.coinColor
+                                        .withValues(alpha: 0.55),
+                            width: isSelected ? 2.5 : 1.5,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.25),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Stack(
+                            children: [
+                              // Bloqueado aparece esmaecido, mas aparece: é o
+                              // que faz a pessoa querer comprar.
+                              Opacity(
+                                opacity: owned ? 1 : 0.55,
+                                child: PixelAvatar(
+                                  avatarIndex: i,
+                                  size: 74,
+                                  circular: false,
+                                ),
+                              ),
+                              if (!owned)
+                                Positioned.fill(
+                                  child: Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(5),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.lock_rounded,
+                                          color: Colors.white, size: 16),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        av.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.bodySmall.copyWith(
                           color: isSelected
                               ? AppColors.primary
-                              : AppColors.cardBorder,
-                          width: isSelected ? 2.5 : 1.5,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.25),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : [],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: PixelAvatar(
-                          avatarIndex: i,
-                          size: 80,
-                          circular: false,
+                              : AppColors.textSecondary,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      av.name,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      ),
-                    ),
-                    if (isSelected)
-                      Container(
-                        width: 6,
-                        height: 6,
-                        margin: const EdgeInsets.only(top: 2),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          shape: BoxShape.circle,
+                      if (!owned)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.monetization_on_rounded,
+                                size: 12,
+                                color: canAfford
+                                    ? AppColors.coinColor
+                                    : AppColors.textMuted),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${av.price}',
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: canAfford
+                                    ? AppColors.coinColor
+                                    : AppColors.textMuted,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        )
+                      else if (isSelected)
+                        Container(
+                          width: 6,
+                          height: 6,
+                          margin: const EdgeInsets.only(top: 2),
+                          decoration: const BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-              ).animate(delay: (i * 50).ms).scale(begin: const Offset(0.85, 0.85)).fade();
-            },
+                    ],
+                  ),
+                ).animate(delay: (i * 30).ms).scale(begin: const Offset(0.9, 0.9)).fade();
+              },
+            ),
           ),
 
           const SizedBox(height: 20),

@@ -132,3 +132,8 @@ create index if not exists daily_completions_user_idx
 -- é de uma recarga por dia; guardado só no aparelho, bastava limpar os dados
 -- do app para assistir de novo.
 alter table users add column if not exists last_ad_refill_at timestamptz;
+
+-- ── Avatares pagos ───────────────────────────────────────────────────────
+-- Índices dos avatares comprados com moeda. Os gratuitos não entram: valem
+-- para todo mundo e não precisam ser gravados por usuário.
+alter table users add column if not exists unlocked_avatars int4[] not null default '{}';

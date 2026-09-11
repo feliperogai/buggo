@@ -23,6 +23,10 @@ class UserProfile {
   final DateTime? unlimitedLivesUntil; // Buggo+ monthly plan expiry
   final int streakFreezes;
 
+  /// Índices dos avatares pagos que a pessoa comprou. Os gratuitos não
+  /// entram aqui — eles valem para todo mundo, sempre.
+  final List<int> unlockedAvatars;
+
   /// Quando o usuário assistiu ao último anúncio que recarregou as vidas.
   /// Fica no perfil (e não só no aparelho) porque o limite é diário: guardado
   /// local, bastava limpar os dados do app para assistir de novo.
@@ -48,6 +52,7 @@ class UserProfile {
     this.unlimitedLivesUntil,
     this.streakFreezes = 0,
     this.lastAdRefillAt,
+    this.unlockedAvatars = const [],
   });
 
   UserProfile copyWith({
@@ -72,6 +77,7 @@ class UserProfile {
     DateTime? unlimitedLivesUntil,
     int? streakFreezes,
     DateTime? lastAdRefillAt,
+    List<int>? unlockedAvatars,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -96,6 +102,7 @@ class UserProfile {
       unlimitedLivesUntil: unlimitedLivesUntil ?? this.unlimitedLivesUntil,
       streakFreezes: streakFreezes ?? this.streakFreezes,
       lastAdRefillAt: lastAdRefillAt ?? this.lastAdRefillAt,
+      unlockedAvatars: unlockedAvatars ?? this.unlockedAvatars,
     );
   }
 
@@ -119,6 +126,7 @@ class UserProfile {
         'unlimitedLivesUntil': unlimitedLivesUntil?.toIso8601String(),
         'streakFreezes': streakFreezes,
         'lastAdRefillAt': lastAdRefillAt?.toIso8601String(),
+        'unlockedAvatars': unlockedAvatars,
       };
 
   factory UserProfile.fromMap(Map<dynamic, dynamic> map) => UserProfile(
@@ -151,6 +159,12 @@ class UserProfile {
         lastAdRefillAt: map['lastAdRefillAt'] != null
             ? DateTime.tryParse(map['lastAdRefillAt'] as String)
             : null,
+        // O servidor devolve int4[]; o Hive pode devolver List<dynamic>.
+        unlockedAvatars: (map['unlockedAvatars'] as List?)
+                ?.map((e) => e is int ? e : int.tryParse('$e') ?? -1)
+                .where((e) => e >= 0)
+                .toList() ??
+            const [],
       );
 
   bool get isGuest => id == null;

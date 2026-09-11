@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_profile.dart';
+import '../widgets/pixel_avatars.dart';
 import '../../core/storage/hive_storage.dart';
 import '../../features/auth/data/auth_repository.dart';
 import '../../features/auth/data/google_sign_in_service.dart';
@@ -306,6 +307,38 @@ class UserNotifier extends Notifier<UserProfile?> {
       return (currentStreak + 1, missedDays);
     }
     return (1, 0);
+  }
+
+  /// A pessoa pode usar este avatar?
+  ///
+  /// Gratuito vale sempre. Pago só depois de comprado — e a lista de
+  /// comprados vem do perfil sincronizado, então trocar de aparelho não faz
+  /// perder o que já foi pago.
+  bool ownsAvatar(int index) {
+    if (index < 0 || index >= kPixelAvatars.length) return false;
+    if (kPixelAvatars[index].isFree) return true;
+    return state?.unlockedAvatars.contains(index) ?? false;
+  }
+
+  /// Compra um avatar com moedas. Devolve false sem cobrar nada quando o
+  /// índice não existe, quando já é dela, ou quando falta moeda.
+  bool buyAvatar(int index) {
+    final profile = state;
+    if (profile == null) return false;
+    if (index < 0 || index >= kPixelAvatars.length) return false;
+
+    final avatar = kPixelAvatars[index];
+    if (avatar.isFree || ownsAvatar(index)) return false;
+    if (profile.coins < avatar.price) return false;
+
+    saveProfile(profile.copyWith(
+      coins: profile.coins - avatar.price,
+      unlockedAvatars: [...profile.unlockedAvatars, index],
+      // Comprou, já veste: ninguém compra avatar para não usar.
+      avatarIndex: index,
+      clearPhoto: true,
+    ));
+    return true;
   }
 
   void updateAvatar(int index, {String? photoPath, bool clearPhoto = false}) {

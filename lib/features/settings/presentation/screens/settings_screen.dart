@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/constants/learning_languages.dart';
+import '../../../../shared/providers/app_version_provider.dart';
 import '../../../../shared/providers/settings_provider.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
@@ -145,7 +146,8 @@ class SettingsScreen extends ConsumerWidget {
                 _SettingsTile(
                   icon: Icons.info_rounded,
                   label: 'Versão',
-                  value: '1.0.0',
+                  // Vem do pacote instalado; ver `appVersionProvider`.
+                  value: ref.watch(appVersionProvider).valueOrNull ?? '—',
                   color: AppColors.textMuted,
                 ),
                 _SettingsTile(

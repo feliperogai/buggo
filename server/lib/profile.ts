@@ -23,6 +23,7 @@ export interface UserRow {
   unlimited_lives_until: string | null;
   streak_freezes: number;
   last_ad_refill_at: string | null;
+  unlocked_avatars: number[];
 }
 
 // The neon serverless driver may hand back timestamptz columns as either a
@@ -59,5 +60,6 @@ export function rowToProfile(row: UserRow) {
     unlimitedLivesUntil: toIso(row.unlimited_lives_until),
     streakFreezes: row.streak_freezes,
     lastAdRefillAt: toIso(row.last_ad_refill_at),
+    unlockedAvatars: Array.isArray(row.unlocked_avatars) ? row.unlocked_avatars : [],
   };
 }
