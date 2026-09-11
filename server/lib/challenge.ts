@@ -15,10 +15,17 @@ export const DIFFICULTIES: readonly Difficulty[] = ['facil', 'media', 'dificil']
 /// Play Store.
 ///
 /// XP não entra: XP é dos módulos da trilha, o desafio diário paga em moeda.
+/// Prêmio do desafio do dia, por dificuldade.
+///
+/// Dobrado em 11/09: com 15 a 40 moedas o desafio pagava menos que duas
+/// lições da trilha, apesar de exigir escrever código do zero e valer uma
+/// vez por dia. O item mais caro da loja de avatares custa 3000, e a conta
+/// só fecha se o desafio for a principal fonte de moeda de quem joga sem
+/// pagar.
 export const REWARD_COINS: Record<Difficulty, number> = {
-  facil: 15,
-  media: 25,
-  dificil: 40,
+  facil: 30,
+  media: 50,
+  dificil: 80,
 };
 
 export interface QuizChallenge {

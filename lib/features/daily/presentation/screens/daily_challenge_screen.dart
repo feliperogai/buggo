@@ -41,6 +41,20 @@ class _DailyChallengeScreenState extends ConsumerState<DailyChallengeScreen> {
     super.dispose();
   }
 
+  /// Volta a tela para o estado editável depois de um erro, **sem tocar no
+  /// que a pessoa escreveu**.
+  ///
+  /// Antes de existir, errar deixava o editor desabilitado e só sobrava
+  /// "Voltar", que fecha a tela: para tentar de novo era preciso sair e
+  /// redigitar o código inteiro. Numa resposta que a pessoa levou minutos
+  /// escrevendo, isso é perder o trabalho por ter errado uma vez.
+  void _retry() {
+    setState(() {
+      _result = null;
+      _error = null;
+    });
+  }
+
   /// Preenche o editor com o começo que veio do servidor, uma vez só — se
   /// refizesse a cada build, apagaria o que a pessoa está digitando.
   void _seedCode(DailyChallenge challenge) {
@@ -126,6 +140,7 @@ class _DailyChallengeScreenState extends ConsumerState<DailyChallengeScreen> {
             error: _error,
             onSelect: (index) => setState(() => _selected = index),
             onSubmit: () => _submit(challenge),
+            onRetry: _retry,
             onClose: () => context.pop(),
           );
         },
@@ -143,6 +158,7 @@ class _Body extends StatelessWidget {
   final String? error;
   final ValueChanged<int> onSelect;
   final VoidCallback onSubmit;
+  final VoidCallback onRetry;
   final VoidCallback onClose;
 
   const _Body({
@@ -154,6 +170,7 @@ class _Body extends StatelessWidget {
     required this.error,
     required this.onSelect,
     required this.onSubmit,
+    required this.onRetry,
     required this.onClose,
   });
 
@@ -227,7 +244,7 @@ class _Body extends StatelessWidget {
         ],
         const SizedBox(height: 20),
         if (answered)
-          _ResultCard(result: result!, onClose: onClose)
+          _ResultCard(result: result!, onRetry: onRetry, onClose: onClose)
         else
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: codeController,
@@ -402,9 +419,14 @@ class _OptionTile extends StatelessWidget {
 
 class _ResultCard extends StatelessWidget {
   final DailyChallengeResult result;
+  final VoidCallback onRetry;
   final VoidCallback onClose;
 
-  const _ResultCard({required this.result, required this.onClose});
+  const _ResultCard({
+    required this.result,
+    required this.onRetry,
+    required this.onClose,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -447,7 +469,24 @@ class _ResultCard extends StatelessWidget {
           ),
         ).animate().fade(duration: 200.ms).slideY(begin: 0.15),
         const SizedBox(height: 16),
-        BuggoButton(label: 'Voltar', onPressed: onClose),
+        // Errou continua no jogo: o botão principal volta a editar, com o
+        // código preservado. Sair vira a opção secundária, não a única.
+        if (!correct) ...[
+          BuggoButton(
+            label: 'Tentar de novo',
+            icon: Icons.refresh_rounded,
+            onPressed: onRetry,
+            width: double.infinity,
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: onClose,
+            child: Text('Sair do desafio',
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.textSecondary)),
+          ),
+        ] else
+          BuggoButton(label: 'Voltar', onPressed: onClose),
       ],
     );
   }
