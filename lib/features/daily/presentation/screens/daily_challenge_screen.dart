@@ -10,6 +10,7 @@ import '../../../../shared/models/lesson.dart';
 import '../../../../shared/providers/user_provider.dart';
 import '../../../../shared/widgets/buggo_button.dart';
 import '../../data/daily_challenge.dart';
+import '../widgets/code_editor.dart';
 import '../../data/daily_challenge_repository.dart';
 import '../../data/daily_providers.dart';
 
@@ -32,7 +33,7 @@ class _DailyChallengeScreenState extends ConsumerState<DailyChallengeScreen> {
   DailyChallengeResult? _result;
   String? _error;
 
-  final _codeController = TextEditingController();
+  final _codeController = CodeEditingController();
   bool _codeSeeded = false;
 
   @override
@@ -151,7 +152,7 @@ class _DailyChallengeScreenState extends ConsumerState<DailyChallengeScreen> {
 
 class _Body extends StatelessWidget {
   final DailyChallenge challenge;
-  final TextEditingController codeController;
+  final CodeEditingController codeController;
   final int? selected;
   final bool sending;
   final DailyChallengeResult? result;
@@ -207,10 +208,14 @@ class _Body extends StatelessWidget {
           ),
         const SizedBox(height: 16),
         if (isCode)
-          _CodeEditor(
+          CodeEditor(
             controller: codeController,
             language: lesson.codeLanguage ?? '',
-            enabled: !answered && !sending,
+            // Só trava enquanto envia, ou depois de acertar — errar mantém o
+            // código editável, que é o que a pessoa tenta fazer primeiro.
+            enabled: !sending && !(answered && result!.correct),
+            onEditAfterResult:
+                answered && !result!.correct ? onRetry : null,
           )
         else
           for (final entry in lesson.options.asMap().entries)
@@ -311,77 +316,6 @@ class _RewardBanner extends StatelessWidget {
 /// Editor simples: fonte monoespaçada, fundo escuro, altura generosa.
 /// Nada de destaque de sintaxe — seriam 16 gramáticas para manter, e o ganho
 /// num campo de poucas linhas no celular é pequeno.
-class _CodeEditor extends StatelessWidget {
-  final TextEditingController controller;
-  final String language;
-  final bool enabled;
-
-  const _CodeEditor({
-    required this.controller,
-    required this.language,
-    required this.enabled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1720),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2A2434)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-            child: Row(
-              children: [
-                const Icon(Icons.code_rounded,
-                    size: 15, color: Color(0xFF8A8398)),
-                const SizedBox(width: 6),
-                Text(
-                  language.isEmpty ? 'Seu código' : language,
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: const Color(0xFF8A8398)),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
-            child: TextField(
-              controller: controller,
-              enabled: enabled,
-              maxLines: null,
-              minLines: 6,
-              autocorrect: false,
-              enableSuggestions: false,
-              keyboardType: TextInputType.multiline,
-              textCapitalization: TextCapitalization.none,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 14,
-                height: 1.5,
-                color: Color(0xFFF5F3FA),
-              ),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                isDense: true,
-                hintText: 'Escreva aqui…',
-                hintStyle: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 14,
-                  color: Color(0xFF6B6480),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _OptionTile extends StatelessWidget {
   final String text;
