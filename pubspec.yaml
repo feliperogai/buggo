@@ -1,7 +1,7 @@
 name: buggo
 description: Learn programming like a game
 publish_to: 'none'
-version: 1.0.6+5
+version: 1.0.6+6
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
