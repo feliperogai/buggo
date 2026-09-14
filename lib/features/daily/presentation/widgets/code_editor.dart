@@ -47,9 +47,26 @@ class _CodeEditorState extends State<CodeEditor> {
   final _focus = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    _focus.addListener(_onFocusChange);
+  }
+
+  @override
   void dispose() {
+    _focus.removeListener(_onFocusChange);
     _focus.dispose();
     super.dispose();
+  }
+
+  /// Entrar no campo com uma resposta errada na tela limpa o resultado.
+  ///
+  /// Um `GestureDetector` em volta do campo não servia: o próprio `TextField`
+  /// ganha a disputa de gestos e o `onTapDown` de fora nunca era chamado — o
+  /// campo ficava editável, mas o cartão de erro continuava na tela. Foco não
+  /// passa por essa disputa.
+  void _onFocusChange() {
+    if (_focus.hasFocus) widget.onEditAfterResult?.call();
   }
 
   /// Insere um nível de indentação na posição do cursor.
@@ -62,27 +79,6 @@ class _CodeEditorState extends State<CodeEditor> {
       text: text.replaceRange(start, value.selection.end, _indent),
       selection: TextSelection.collapsed(offset: start + _indent.length),
     );
-  }
-
-  /// Enter que mantém a indentação da linha atual, e aprofunda um nível
-  /// quando ela abre um bloco.
-  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey != LogicalKeyboardKey.enter) {
-      return KeyEventResult.ignored;
-    }
-
-    final value = widget.controller.value;
-    final offset = value.selection.baseOffset;
-    if (offset < 0) return KeyEventResult.ignored;
-
-    final insert = '\n${indentForNewLine(value.text.substring(0, offset))}';
-
-    widget.controller.value = TextEditingValue(
-      text: value.text.replaceRange(offset, value.selection.extentOffset, insert),
-      selection: TextSelection.collapsed(offset: offset + insert.length),
-    );
-    return KeyEventResult.handled;
   }
 
   @override
@@ -102,47 +98,57 @@ class _CodeEditorState extends State<CodeEditor> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 6, 14, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _LineNumbers(controller: widget.controller),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Focus(
-                    onKeyEvent: _onKey,
-                    child: GestureDetector(
-                      // Toque no código com resultado na tela volta a editar.
-                      onTapDown: (_) => widget.onEditAfterResult?.call(),
-                      behavior: HitTestBehavior.translucent,
-                      child: TextField(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const gutter = 28.0;
+                const gap = 10.0;
+                final textWidth = constraints.maxWidth - gutter - gap;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: gutter,
+                      child: _LineNumbers(
                         controller: widget.controller,
-                        focusNode: _focus,
-                        enabled: widget.enabled,
-                        maxLines: null,
-                        minLines: 6,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        keyboardType: TextInputType.multiline,
-                        textCapitalization: TextCapitalization.none,
-                        cursorColor: const Color(0xFFB794F6),
-                        style: _codeStyle,
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          hintText: 'Escreva aqui…',
-                          hintStyle: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 14,
-                            height: 1.5,
-                            color: Color(0xFF6B6480),
-                          ),
-                        ),
+                        textWidth: textWidth,
                       ),
                     ),
-                  ),
-                ),
-              ],
+                    const SizedBox(width: gap),
+                    Expanded(
+                      child: TextField(
+                          // Campo já focado não dispara o ouvinte de foco de
+                          // novo; o toque cobre esse caso.
+                          onTap: widget.onEditAfterResult,
+                          controller: widget.controller,
+                          focusNode: _focus,
+                          enabled: widget.enabled,
+                          maxLines: null,
+                          minLines: 6,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          keyboardType: TextInputType.multiline,
+                          textCapitalization: TextCapitalization.none,
+                          inputFormatters: [AutoIndentFormatter()],
+                          cursorColor: const Color(0xFFB794F6),
+                          style: _codeStyle,
+                          strutStyle: _codeStrut,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            hintText: 'Escreva aqui…',
+                            hintStyle: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 14,
+                              height: 1.5,
+                              color: Color(0xFF6B6480),
+                            ),
+                          ),
+                        ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -157,6 +163,18 @@ const _codeStyle = TextStyle(
   height: 1.5,
   color: Color(0xFFF5F3FA),
 );
+
+/// Força a mesma altura em toda linha, no campo e na coluna de números. Sem
+/// isso um caractere mais alto (acento, emoji) empurra a linha e a numeração
+/// desalinha.
+const _codeStrut = StrutStyle(
+  fontFamily: 'monospace',
+  fontSize: 14,
+  height: 1.5,
+  forceStrutHeight: true,
+);
+
+double get _rowHeight => _codeStyle.fontSize! * _codeStyle.height!;
 
 class _Toolbar extends StatelessWidget {
   final String language;
@@ -200,38 +218,71 @@ class _Toolbar extends StatelessWidget {
 }
 
 /// Coluna de números de linha, acompanhando o texto digitado.
+///
+/// Uma linha de código longa quebra em várias linhas na tela do celular. A
+/// numeração conta linhas de código, não de tela: o número aparece só na
+/// primeira parte, e as continuações ficam em branco — como no VS Code com
+/// quebra automática. Contar só os `\n` deixava o número atrasado a partir da
+/// primeira quebra.
 class _LineNumbers extends StatelessWidget {
   final TextEditingController controller;
 
-  const _LineNumbers({required this.controller});
+  /// Largura disponível para o texto, para medir onde cada linha quebra.
+  final double textWidth;
+
+  const _LineNumbers({required this.controller, required this.textWidth});
+
+  /// Quantas linhas de tela uma linha de código ocupa nessa largura.
+  int _visualRows(String line) {
+    final painter = TextPainter(
+      text: TextSpan(text: line.isEmpty ? ' ' : line, style: _codeStyle),
+      strutStyle: _codeStrut,
+      textDirection: TextDirection.ltr,
+    )
+      // O campo reserva a largura do cursor mais 1px antes de quebrar.
+      ..layout(maxWidth: (textWidth - 3).clamp(1, double.infinity));
+    final rows = painter.computeLineMetrics().length;
+    painter.dispose();
+    return rows < 1 ? 1 : rows;
+  }
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
       builder: (context, value, _) {
-        // Mínimo de 6 para a coluna não encolher com o campo vazio e fazer o
-        // texto pular de posição na primeira tecla.
-        final lines = value.text.isEmpty ? 1 : '\n'.allMatches(value.text).length + 1;
-        final total = lines < 6 ? 6 : lines;
+        final codeLines = value.text.split('\n');
+        final children = <Widget>[];
+        for (var i = 0; i < codeLines.length; i++) {
+          final rows = _visualRows(codeLines[i]);
+          for (var r = 0; r < rows; r++) {
+            children.add(_number(r == 0 ? '${i + 1}' : '', filled: true));
+          }
+        }
+        // Mínimo de 6 linhas de tela, igual ao `minLines` do campo, para a
+        // coluna não encolher com o editor vazio.
+        var next = codeLines.length + 1;
+        while (children.length < 6) {
+          children.add(_number('${next++}', filled: false));
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            for (int i = 1; i <= total; i++)
-              SizedBox(
-                height: _codeStyle.fontSize! * _codeStyle.height!,
-                child: Text(
-                  '$i',
-                  style: _codeStyle.copyWith(
-                    color: i <= lines
-                        ? const Color(0xFF5C5470)
-                        : const Color(0xFF332D42),
-                  ),
-                ),
-              ),
-          ],
+          children: children,
         );
       },
+    );
+  }
+
+  Widget _number(String label, {required bool filled}) {
+    return SizedBox(
+      height: _rowHeight,
+      child: Text(
+        label,
+        strutStyle: _codeStrut,
+        style: _codeStyle.copyWith(
+          color: filled ? const Color(0xFF5C5470) : const Color(0xFF332D42),
+        ),
+      ),
     );
   }
 }
@@ -323,4 +374,41 @@ String indentForNewLine(String textBeforeCursor, {String indent = '    '}) {
   final current = RegExp(r'^[ \t]*').firstMatch(line)?.group(0) ?? '';
   final opensBlock = RegExp(r'[:{(\[]\s*$').hasMatch(line);
   return '$current${opensBlock ? indent : ''}';
+}
+
+/// Indentação automática que funciona com o teclado virtual.
+///
+/// A primeira versão escutava a tecla Enter como evento de teclado, e o
+/// teclado virtual do Android não emite esse evento: ele insere a quebra de
+/// linha direto no texto. Num celular de verdade a indentação nunca
+/// acontecia. O formatador vê a edição já aplicada, então pega a quebra de
+/// linha venha de onde vier — teclado virtual, físico ou colagem de uma
+/// linha só.
+class AutoIndentFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final sel = newValue.selection;
+    if (!sel.isValid || !sel.isCollapsed) return newValue;
+    final offset = sel.baseOffset;
+    if (offset <= 0 || offset > newValue.text.length) return newValue;
+
+    // Só a digitação de exatamente um Enter: a edição trocou a seleção
+    // antiga por um único '\n'. Colar um bloco inteiro não é mexido.
+    final removed = oldValue.selection.isValid
+        ? oldValue.selection.end - oldValue.selection.start
+        : 0;
+    final grewByOne = newValue.text.length == oldValue.text.length - removed + 1;
+    if (!grewByOne || newValue.text[offset - 1] != '\n') return newValue;
+
+    final indent = indentForNewLine(newValue.text.substring(0, offset - 1));
+    if (indent.isEmpty) return newValue;
+
+    return TextEditingValue(
+      text: newValue.text.replaceRange(offset, offset, indent),
+      selection: TextSelection.collapsed(offset: offset + indent.length),
+    );
+  }
 }

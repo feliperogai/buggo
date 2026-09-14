@@ -41,6 +41,46 @@ void main() {
     });
   });
 
+  group('formatador de indentação (teclado virtual)', () {
+    TextEditingValue typed(String before, String after) => TextEditingValue(
+          text: after,
+          selection: TextSelection.collapsed(offset: after.length),
+        );
+    TextEditingValue at(String text) => TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: text.length),
+        );
+
+    final f = AutoIndentFormatter();
+
+    test('Enter depois de dois-pontos indenta a próxima linha', () {
+      final out = f.formatEditUpdate(at('def f():'), typed('', 'def f():\n'));
+      expect(out.text, 'def f():\n    ');
+      expect(out.selection.baseOffset, out.text.length);
+    });
+
+    test('Enter no meio de bloco mantém a indentação', () {
+      const before = 'if x:\n    a = 1';
+      final out = f.formatEditUpdate(at(before), typed('', '$before\n'));
+      expect(out.text, '$before\n    ');
+    });
+
+    test('Enter numa linha sem indentação não acrescenta nada', () {
+      final out = f.formatEditUpdate(at('x = 1'), typed('', 'x = 1\n'));
+      expect(out.text, 'x = 1\n');
+    });
+
+    test('digitar uma letra não é afetado', () {
+      final out = f.formatEditUpdate(at('def f():'), typed('', 'def f():a'));
+      expect(out.text, 'def f():a');
+    });
+
+    test('colar várias linhas não é mexido', () {
+      final out = f.formatEditUpdate(at('x'), typed('', 'x\n  y\n  z'));
+      expect(out.text, 'x\n  y\n  z');
+    });
+  });
+
   group('destaque de sintaxe', () {
     TextSpan spanOf(String code) {
       final c = CodeEditingController(text: code);
